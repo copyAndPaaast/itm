@@ -157,3 +157,35 @@ Example violations to avoid:
 - Creating wrapper methods that just call other service methods without adding value
 
 **Correct approach**: Call methods directly from their appropriate service (AssetClassService, NodeService, SystemService) rather than wrapping them unnecessarily.
+
+## MANDATORY: Simple Cypher Queries
+Keep all Cypher queries as simple as possible:
+1. **Prefer simple MATCH patterns** over complex multi-step queries
+2. **Avoid complex WHERE conditions** when possible - use simple property matching
+3. **Minimize nested subqueries** and complex aggregations
+4. **Use basic CREATE, MATCH, SET, DELETE patterns**
+5. **Avoid advanced Cypher features** unless absolutely necessary
+
+**If complex queries are unavoidable:**
+- **Discussion required** before implementation
+- **Document the complexity** and why simpler alternatives won't work
+- **Consider breaking into multiple simple queries** instead of one complex query
+
+**Examples of preferred simple patterns:**
+```cypher
+// Good - Simple and clear
+MATCH (n:Asset) WHERE id(n) = $nodeId RETURN n
+
+// Good - Basic relationship creation
+CREATE (a)-[:DEPENDS_ON $properties]->(b)
+
+// Avoid - Complex aggregation and filtering
+MATCH (g:Group) WHERE g.isActive = true
+WITH g
+MATCH (member:Asset:ProdWebSystem)-[:MEMBER_OF]->(g)
+WITH g, collect(toString(id(member))) as systemMembers
+OPTIONAL MATCH (allMembers:Asset)-[:MEMBER_OF]->(g)
+RETURN g, systemMembers, collect(toString(id(allMembers))) as allMembers
+```
+
+**Goal**: Maintain readable, maintainable, and performant Neo4j interactions.
