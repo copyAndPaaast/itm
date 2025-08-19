@@ -1,10 +1,10 @@
 export class AssetClassInterface {
   
-  async createAssetClass(className, propertySchema, requiredProperties = []) {
+  async createAssetClass({className, propertySchema, requiredProperties = []}) {
     throw new Error('createAssetClass method must be implemented')
   }
 
-  async getAssetClass(classId) {
+  async getAssetClass({classId = null, className = null}) {
     throw new Error('getAssetClass method must be implemented')
   }
 
@@ -12,39 +12,27 @@ export class AssetClassInterface {
     throw new Error('getAllAssetClasses method must be implemented')
   }
 
-  async updateAssetClass(classId, updates) {
+  async updateAssetClass({classId, updates}) {
     throw new Error('updateAssetClass method must be implemented')
   }
 
-  async deleteAssetClass(classId) {
+  async deleteAssetClass({classId}) {
     throw new Error('deleteAssetClass method must be implemented')
   }
 
-  async validateAssetClassSchema(propertySchema) {
+  async validateAssetClassSchema({propertySchema}) {
     throw new Error('validateAssetClassSchema method must be implemented')
   }
 
-  async assetClassExists(className) {
+  async assetClassExists({className}) {
     throw new Error('assetClassExists method must be implemented')
   }
 
-  async getAssetClassByName(className) {
-    throw new Error('getAssetClassByName method must be implemented')
-  }
-
-  async validatePropertiesForAssetClass(assetClassId, properties) {
+  async validatePropertiesForAssetClass({classId = null, className = null, properties}) {
     throw new Error('validatePropertiesForAssetClass method must be implemented')
   }
 
-  async validatePropertiesForAssetClassName(className, properties) {
-    throw new Error('validatePropertiesForAssetClassName method must be implemented')
-  }
-
-  async getAssetClassSchema(assetClassId) {
+  async getAssetClassSchema({classId = null, className = null}) {
     throw new Error('getAssetClassSchema method must be implemented')
-  }
-
-  async getAssetClassSchemaByName(className) {
-    throw new Error('getAssetClassSchemaByName method must be implemented')
   }
 }

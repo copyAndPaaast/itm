@@ -8,12 +8,12 @@ export class AssetClassService extends AssetClassInterface {
     this.neo4jService = Neo4jService.getInstance()
   }
 
-  async createAssetClass(className, propertySchema, requiredProperties = []) {
+  async createAssetClass({className, propertySchema, requiredProperties = []}) {
     const session = this.neo4jService.getSession()
     
     try {
       // Check if AssetClass already exists
-      const exists = await this.assetClassExists(className)
+      const exists = await this.assetClassExists({className})
       if (exists) {
         throw new Error(`AssetClass with name '${className}' already exists`)
       }
@@ -42,21 +42,35 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
-  async getAssetClass(classId) {
+  async getAssetClass({classId = null, className = null}) {
     const session = this.neo4jService.getSession()
     
     try {
       const result = await session.run(
         `
         MATCH (ac:AssetClass)
-        WHERE id(ac) = $classId
+        WHERE (CASE WHEN $classId IS NOT NULL THEN id(ac) = $classId ELSE false END) OR 
+              (CASE WHEN $className IS NOT NULL THEN ac.className = $className ELSE false END)
         RETURN ac
         `,
-        { classId: neo4j.int(classId) }
+        { 
+          classId: classId ? this.neo4jService.int(classId) : null,
+          className: className || null
+        }
       )
 
       if (result.records.length === 0) {
-        return null
+        // Get available classes for error message using a new session
+        const availableResult = await session.run(
+          `
+          MATCH (ac:AssetClass)
+          WHERE ac.isActive = true
+          RETURN ac.className + ' (' + toString(id(ac)) + ')' as classInfo
+          ORDER BY ac.className
+          `
+        )
+        const classNames = availableResult.records.map(record => record.get('classInfo')).join(', ')
+        throw new Error(`AssetClass '${classId || className}' not found. Available classes: ${classNames}`)
       }
 
       return AssetClassModel.fromNeo4jNode(result.records[0].get('ac'))
@@ -86,7 +100,7 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
-  async updateAssetClass(classId, updates) {
+  async updateAssetClass({classId, updates}) {
     const session = this.neo4jService.getSession()
     
     try {
@@ -115,7 +129,7 @@ export class AssetClassService extends AssetClassInterface {
         RETURN ac
         `,
         { 
-          classId: neo4j.int(classId),
+          classId: this.neo4jService.int(classId),
           updates: updateProperties
         }
       )
@@ -130,7 +144,7 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
-  async deleteAssetClass(classId) {
+  async deleteAssetClass({classId}) {
     const session = this.neo4jService.getSession()
     
     try {
@@ -141,7 +155,7 @@ export class AssetClassService extends AssetClassInterface {
         DELETE ac
         RETURN count(ac) as deletedCount
         `,
-        { classId: neo4j.int(classId) }
+        { classId: this.neo4jService.int(classId) }
       )
 
       return result.records[0]?.get('deletedCount')?.toNumber() > 0
@@ -150,7 +164,7 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
-  async validateAssetClassSchema(propertySchema) {
+  async validateAssetClassSchema({propertySchema}) {
     const errors = []
 
     for (const [propertyName, schema] of Object.entries(propertySchema)) {
@@ -170,7 +184,7 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
-  async assetClassExists(className) {
+  async assetClassExists({className}) {
     const session = this.neo4jService.getSession()
     
     try {
@@ -189,41 +203,34 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
+  // Legacy method - use getAssetClass({className}) instead
   async getAssetClassByName(className) {
-    const allClasses = await this.getAllAssetClasses()
-    const assetClass = allClasses.find(ac => ac.className === className)
-    
-    if (!assetClass) {
-      const classNames = allClasses.map(ac => ac.className).join(', ')
-      throw new Error(`AssetClass '${className}' not found. Available classes: ${classNames}`)
-    }
-    
-    return assetClass
+    return await this.getAssetClass({className})
   }
 
-  async validatePropertiesForAssetClass(assetClassId, properties) {
-    const assetClass = await this.getAssetClass(assetClassId)
+  async validatePropertiesForAssetClass({classId = null, className = null, properties}) {
+    const assetClass = await this.getAssetClass({classId, className})
     if (!assetClass) {
       return {
         valid: false,
-        errors: [`AssetClass with ID '${assetClassId}' not found`]
+        errors: [`AssetClass with ${classId ? 'ID ' + classId : 'name ' + className} not found`]
       }
     }
 
     return assetClass.validateAllProperties(properties)
   }
 
+  // Legacy method - use validatePropertiesForAssetClass({className, properties}) instead
   async validatePropertiesForAssetClassName(className, properties) {
-    const assetClass = await this.getAssetClassByName(className)
-    return assetClass.validateAllProperties(properties)
+    return await this.validatePropertiesForAssetClass({className, properties})
   }
 
-  async getAssetClassSchema(assetClassId) {
-    const assetClass = await this.getAssetClass(assetClassId)
+  async getAssetClassSchema({classId = null, className = null}) {
+    const assetClass = await this.getAssetClass({classId, className})
     if (!assetClass) {
       const availableClasses = await this.getAllAssetClasses()
       const classNames = availableClasses.map(ac => `${ac.className} (${ac.classId})`).join(', ')
-      throw new Error(`AssetClass '${assetClassId}' not found. Available classes: ${classNames}`)
+      throw new Error(`AssetClass '${classId || className}' not found. Available classes: ${classNames}`)
     }
 
     return {
@@ -240,9 +247,9 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
+  // Legacy method - use getAssetClassSchema({className}) instead
   async getAssetClassSchemaByName(className) {
-    const assetClass = await this.getAssetClassByName(className)
-    return this.getAssetClassSchema(assetClass.classId)
+    return await this.getAssetClassSchema({className})
   }
 
   async close() {

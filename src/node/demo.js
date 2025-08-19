@@ -21,12 +21,11 @@ async function runNodeDemo() {
     
     try {
       // Check if Server AssetClass exists, create if not
-      serverClass = await assetClassService.getAssetClass('Server')
+      serverClass = await assetClassService.getAssetClass({className: 'Server'})
       if (!serverClass) {
-        serverClass = await assetClassService.createAssetClass(
-          'Server',
-          'Physical or virtual server infrastructure',
-          {
+        serverClass = await assetClassService.createAssetClass({
+          className: 'Server',
+          propertySchema: {
             hostname: { type: 'string', required: true },
             ip_address: { type: 'string', required: true },
             os: { type: 'string', required: false },
@@ -35,19 +34,18 @@ async function runNodeDemo() {
             is_virtual: { type: 'boolean', required: false },
             datacenter: { type: 'string', required: false }
           }
-        )
+        })
         console.log('   ✓ Created Server AssetClass')
       } else {
         console.log('   ✓ Using existing Server AssetClass')
       }
 
       // Check if Database AssetClass exists, create if not
-      databaseClass = await assetClassService.getAssetClass('Database')
+      databaseClass = await assetClassService.getAssetClass({className: 'Database'})
       if (!databaseClass) {
-        databaseClass = await assetClassService.createAssetClass(
-          'Database',
-          'Database systems and instances',
-          {
+        databaseClass = await assetClassService.createAssetClass({
+          className: 'Database',
+          propertySchema: {
             name: { type: 'string', required: true },
             type: { type: 'string', required: true },
             version: { type: 'string', required: false },
@@ -55,26 +53,25 @@ async function runNodeDemo() {
             backup_enabled: { type: 'boolean', required: false },
             connection_string: { type: 'string', required: false }
           }
-        )
+        })
         console.log('   ✓ Created Database AssetClass')
       } else {
         console.log('   ✓ Using existing Database AssetClass')
       }
 
       // Check if NetworkDevice AssetClass exists, create if not
-      networkDeviceClass = await assetClassService.getAssetClass('NetworkDevice')
+      networkDeviceClass = await assetClassService.getAssetClass({className: 'NetworkDevice'})
       if (!networkDeviceClass) {
-        networkDeviceClass = await assetClassService.createAssetClass(
-          'NetworkDevice',
-          'Network infrastructure devices',
-          {
+        networkDeviceClass = await assetClassService.createAssetClass({
+          className: 'NetworkDevice',
+          propertySchema: {
             hostname: { type: 'string', required: true },
             ip_address: { type: 'string', required: true },
             device_type: { type: 'string', required: true },
             vlan: { type: 'number', required: false },
             management_ip: { type: 'string', required: false }
           }
-        )
+        })
         console.log('   ✓ Created NetworkDevice AssetClass')
       } else {
         console.log('   ✓ Using existing NetworkDevice AssetClass')
@@ -243,7 +240,7 @@ async function runNodeDemo() {
       console.log(`\n• ${assetClass.className} (${assetClass.classId}):`)
       console.log(`  Description: ${assetClass.description}`)
       
-      const schema = await assetClassService.getAssetClassSchema(assetClass.classId)
+      const schema = await assetClassService.getAssetClassSchema({classId: assetClass.classId})
       console.log(`  Required: [${schema.requiredProperties.join(', ')}]`)
       console.log(`  Optional: [${schema.optionalProperties.join(', ')}]`)
     }
@@ -275,17 +272,17 @@ async function runNodeDemo() {
     
     // Test validation before creation
     console.log('\nTesting pre-validation:')
-    const validationResult = await assetClassService.validatePropertiesForAssetClassName('Database', {
+    const validationResult = await assetClassService.validatePropertiesForAssetClass({className: 'Database', properties: {
       name: 'test_db',
       type: 'MySQL'
       // All good - name and type are required, others optional
-    })
+    }})
     console.log(`✅ Pre-validation result: valid=${validationResult.valid}`)
     
-    const invalidValidationResult = await assetClassService.validatePropertiesForAssetClassName('Database', {
+    const invalidValidationResult = await assetClassService.validatePropertiesForAssetClass({className: 'Database', properties: {
       name: 'test_db'
       // Missing required 'type'
-    })
+    }})
     console.log(`✅ Pre-validation catches errors: valid=${invalidValidationResult.valid}, errors=[${invalidValidationResult.errors.join(', ')}]`)
     
   } catch (error) {
@@ -295,6 +292,10 @@ async function runNodeDemo() {
     await factory.close()
     await systemService.close()
     await assetClassService.close()
+    // Close Neo4j connection for demo cleanup
+    const { Neo4jService } = await import('../database/Neo4jService.js')
+    const neo4jService = Neo4jService.getInstance()
+    await neo4jService.close()
   }
 }
 

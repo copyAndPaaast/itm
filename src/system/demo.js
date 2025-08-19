@@ -19,17 +19,17 @@ async function systemDemo() {
     // Create Server AssetClass if it doesn't exist
     let serverClass
     try {
-      serverClass = await assetClassService.getAssetClass('Server')
+      serverClass = await assetClassService.getAssetClassByName('Server')
       if (!serverClass) {
-        serverClass = await assetClassService.createAssetClass(
-          'Server',
-          'Physical or virtual server',
-          {
-            hostname: { type: 'string', required: true },
-            ip: { type: 'string', required: true },
-            os: { type: 'string', required: false }
-          }
-        )
+        serverClass = await assetClassService.createAssetClass({
+          className: 'Server',
+          propertySchema: {
+            hostname: { type: 'string' },
+            ip: { type: 'string' },
+            os: { type: 'string' }
+          },
+          requiredProperties: ['hostname', 'ip']
+        })
         console.log('   ✓ Created Server AssetClass')
       } else {
         console.log('   ✓ Using existing Server AssetClass')
@@ -183,6 +183,10 @@ async function systemDemo() {
     await systemService.close()
     await nodeService.close()
     await assetClassService.close()
+    // Close Neo4j connection for demo cleanup
+    const { Neo4jService } = await import('../database/Neo4jService.js')
+    const neo4jService = Neo4jService.getInstance()
+    await neo4jService.close()
   }
 }
 

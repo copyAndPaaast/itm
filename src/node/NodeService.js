@@ -15,7 +15,13 @@ export class NodeService extends NodeInterface {
 
     try {
       // Get AssetClass to validate properties and get className for labels
-      const assetClass = await this.assetClassService.getAssetClass(assetClassId)
+      let assetClass
+      if (typeof assetClassId === 'number' || /^\d+$/.test(assetClassId)) {
+        assetClass = await this.assetClassService.getAssetClass({classId: assetClassId})
+      } else {
+        assetClass = await this.assetClassService.getAssetClass({className: assetClassId})
+      }
+      
       if (!assetClass) {
         throw new Error(`AssetClass with ID '${assetClassId}' not found`)
       }
@@ -134,7 +140,7 @@ export class NodeService extends NodeInterface {
       }
 
       // Get AssetClass for validation
-      const assetClass = await this.assetClassService.getAssetClass(existingNode.assetClassId)
+      const assetClass = await this.assetClassService.getAssetClass({classId: existingNode.assetClassId})
       if (!assetClass) {
         throw new Error(`AssetClass with ID '${existingNode.assetClassId}' not found`)
       }

@@ -18,7 +18,13 @@ export class NodeFactory {
    */
   async createNode(assetClassId, title, properties, systems = []) {
     // Load AssetClass definition to validate against schema
-    const assetClass = await this.getAssetClass(assetClassId)
+    // Determine if assetClassId is numeric ID or class name
+    let assetClass
+    if (typeof assetClassId === 'number' || /^\d+$/.test(assetClassId)) {
+      assetClass = await this.getAssetClass({classId: assetClassId})
+    } else {
+      assetClass = await this.getAssetClass({className: assetClassId})
+    }
     
     // Validate properties against AssetClass schema
     const validation = assetClass.validateAllProperties(properties)
@@ -45,23 +51,31 @@ export class NodeFactory {
   }
 
   /**
-   * Get AssetClass by ID with caching
-   * @param {string} assetClassId - AssetClass ID
+   * Get AssetClass with caching using clear object parameters
+   * @param {Object} params - Parameters object
+   * @param {string} [params.classId] - AssetClass ID
+   * @param {string} [params.className] - AssetClass name
    * @returns {AssetClassModel} AssetClass definition
    */
-  async getAssetClass(assetClassId) {
-    if (this.assetClassCache.has(assetClassId)) {
-      return this.assetClassCache.get(assetClassId)
+  async getAssetClass({classId = null, className = null}) {
+    if (!classId && !className) {
+      throw new Error('Either classId or className must be provided')
     }
 
-    const assetClass = await this.assetClassService.getAssetClass(assetClassId)
+    const cacheKey = classId || className
+    if (this.assetClassCache.has(cacheKey)) {
+      return this.assetClassCache.get(cacheKey)
+    }
+
+    const assetClass = await this.assetClassService.getAssetClass({classId, className})
+    
     if (!assetClass) {
       const availableClasses = await this.assetClassService.getAllAssetClasses()
       const classNames = availableClasses.map(ac => `${ac.className} (${ac.classId})`).join(', ')
-      throw new Error(`AssetClass '${assetClassId}' not found. Available classes: ${classNames}`)
+      throw new Error(`AssetClass '${classId || className}' not found. Available classes: ${classNames}`)
     }
 
-    this.assetClassCache.set(assetClassId, assetClass)
+    this.assetClassCache.set(cacheKey, assetClass)
     return assetClass
   }
 

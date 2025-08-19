@@ -25,7 +25,7 @@ export class NodeModel {
     return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 
-  static fromNeo4jNode(node) {my
+  static fromNeo4jNode(node) {
     const nodeProps = node.properties
     let properties = {}
 

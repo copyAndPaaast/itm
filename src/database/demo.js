@@ -121,17 +121,30 @@ async function databaseDemo() {
 
     console.log('\n=== Demo Complete ===')
     console.log('Neo4j Database Service functionality demonstrated successfully!')
-    console.log('💡 Connection remains active for application use (singleton pattern)')
+    
+    // Close connection for demo cleanup (normally this would be done at app shutdown)
+    console.log('\n🔧 Closing Neo4j connection for demo cleanup...')
+    await neo4j1.close()
+    console.log('✅ Connection closed')
 
   } catch (error) {
     console.error('\n❌ Demo failed:', error.message)
     console.error('Stack:', error.stack)
+    
+    // Ensure cleanup on error
+    try {
+      const neo4jService = Neo4jService.getInstance()
+      await neo4jService.close()
+    } catch (closeError) {
+      console.error('Error during cleanup:', closeError.message)
+    }
+    
     throw error
   }
 }
 
 // Run demo if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
   databaseDemo()
     .then(() => {
       console.log('\nDatabase demo completed successfully!')

@@ -40,7 +40,10 @@ async function testConnection() {
     console.error('Full error:', error)
   }
   
-  console.log('\n💡 Neo4j connection remains active (managed by singleton)')
+  // Close connection for test cleanup
+  console.log('\n🔧 Closing connection for test cleanup...')
+  await neo4jService.close()
+  console.log('✅ Connection closed')
 }
 
 testConnection()
