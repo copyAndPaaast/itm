@@ -1,36 +1,46 @@
-import neo4j from 'neo4j-driver'
-import dotenv from 'dotenv'
-
-dotenv.config()
+import { Neo4jService } from './src/database/Neo4jService.js'
 
 async function testConnection() {
-  console.log('Testing Neo4j connection...')
-  console.log('URI:', process.env.NEO4J_URI)
-  console.log('Username:', process.env.NEO4J_USERNAME)
-  console.log('Database:', process.env.NEO4J_DATABASE)
+  console.log('Testing Neo4j connection using centralized Neo4jService...')
   
-  const driver = neo4j.driver(
-    process.env.NEO4J_URI,
-    neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
-  )
+  const neo4jService = Neo4jService.getInstance()
+  const status = neo4jService.getStatus()
+  
+  console.log('URI:', status.neo4jUri)
+  console.log('Database:', status.databaseName)
   
   try {
-    const session = driver.session({ database: process.env.NEO4J_DATABASE || 'neo4j' })
-    
     console.log('Attempting to connect and run simple query...')
-    const result = await session.run('RETURN "Hello Neo4j" as message')
+    const connectionTest = await neo4jService.testConnection()
     
-    console.log('✅ Connection successful!')
-    console.log('Result:', result.records[0].get('message'))
-    
-    await session.close()
+    if (connectionTest) {
+      console.log('✅ Connection test successful!')
+      
+      // Test direct query execution
+      const result = await neo4jService.executeQuery('RETURN "Hello Neo4j via Neo4jService" as message')
+      console.log('Result:', result.records[0].get('message'))
+      
+      // Test session management
+      const session = neo4jService.getSession()
+      const sessionResult = await session.run('RETURN "Session test" as sessionMessage')
+      console.log('Session Result:', sessionResult.records[0].get('sessionMessage'))
+      await session.close()
+      
+      console.log('\n📊 Final Status:')
+      const finalStatus = neo4jService.getStatus()
+      console.log('Connected:', finalStatus.isConnected)
+      console.log('Active Sessions:', finalStatus.activeSessions)
+      
+    } else {
+      console.error('❌ Connection test failed!')
+    }
   } catch (error) {
     console.error('❌ Connection failed:', error.message)
     console.error('Error code:', error.code)
     console.error('Full error:', error)
-  } finally {
-    await driver.close()
   }
+  
+  console.log('\n💡 Neo4j connection remains active (managed by singleton)')
 }
 
 testConnection()

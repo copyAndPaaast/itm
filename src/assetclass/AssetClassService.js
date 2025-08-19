@@ -1,22 +1,15 @@
-import neo4j from 'neo4j-driver'
-import dotenv from 'dotenv'
 import { AssetClassInterface } from './AssetClassInterface.js'
 import { AssetClassModel } from './AssetClassModel.js'
-
-dotenv.config()
+import { Neo4jService } from '../database/Neo4jService.js'
 
 export class AssetClassService extends AssetClassInterface {
   constructor() {
     super()
-    this.driver = neo4j.driver(
-      process.env.NEO4J_URI,
-      neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
-    )
-    this.database = process.env.NEO4J_DATABASE || 'neo4j'
+    this.neo4jService = Neo4jService.getInstance()
   }
 
   async createAssetClass(className, propertySchema, requiredProperties = []) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
     
     try {
       // Check if AssetClass already exists
@@ -50,7 +43,7 @@ export class AssetClassService extends AssetClassInterface {
   }
 
   async getAssetClass(classId) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
     
     try {
       const result = await session.run(
@@ -73,7 +66,7 @@ export class AssetClassService extends AssetClassInterface {
   }
 
   async getAllAssetClasses() {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
     
     try {
       const result = await session.run(
@@ -94,7 +87,7 @@ export class AssetClassService extends AssetClassInterface {
   }
 
   async updateAssetClass(classId, updates) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
     
     try {
       const allowedUpdates = ['className', 'propertySchema', 'requiredProperties', 'isActive']
@@ -138,7 +131,7 @@ export class AssetClassService extends AssetClassInterface {
   }
 
   async deleteAssetClass(classId) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
     
     try {
       const result = await session.run(
@@ -178,7 +171,7 @@ export class AssetClassService extends AssetClassInterface {
   }
 
   async assetClassExists(className) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
     
     try {
       const result = await session.run(
@@ -196,7 +189,64 @@ export class AssetClassService extends AssetClassInterface {
     }
   }
 
+  async getAssetClassByName(className) {
+    const allClasses = await this.getAllAssetClasses()
+    const assetClass = allClasses.find(ac => ac.className === className)
+    
+    if (!assetClass) {
+      const classNames = allClasses.map(ac => ac.className).join(', ')
+      throw new Error(`AssetClass '${className}' not found. Available classes: ${classNames}`)
+    }
+    
+    return assetClass
+  }
+
+  async validatePropertiesForAssetClass(assetClassId, properties) {
+    const assetClass = await this.getAssetClass(assetClassId)
+    if (!assetClass) {
+      return {
+        valid: false,
+        errors: [`AssetClass with ID '${assetClassId}' not found`]
+      }
+    }
+
+    return assetClass.validateAllProperties(properties)
+  }
+
+  async validatePropertiesForAssetClassName(className, properties) {
+    const assetClass = await this.getAssetClassByName(className)
+    return assetClass.validateAllProperties(properties)
+  }
+
+  async getAssetClassSchema(assetClassId) {
+    const assetClass = await this.getAssetClass(assetClassId)
+    if (!assetClass) {
+      const availableClasses = await this.getAllAssetClasses()
+      const classNames = availableClasses.map(ac => `${ac.className} (${ac.classId})`).join(', ')
+      throw new Error(`AssetClass '${assetClassId}' not found. Available classes: ${classNames}`)
+    }
+
+    return {
+      classId: assetClass.classId,
+      className: assetClass.className,
+      description: assetClass.description,
+      propertySchema: assetClass.propertySchema,
+      requiredProperties: Object.entries(assetClass.propertySchema)
+        .filter(([key, def]) => def.required)
+        .map(([key, def]) => key),
+      optionalProperties: Object.entries(assetClass.propertySchema)
+        .filter(([key, def]) => !def.required)
+        .map(([key, def]) => key)
+    }
+  }
+
+  async getAssetClassSchemaByName(className) {
+    const assetClass = await this.getAssetClassByName(className)
+    return this.getAssetClassSchema(assetClass.classId)
+  }
+
   async close() {
-    await this.driver.close()
+    // Neo4j connection is managed by Neo4jService singleton
+    // No resources to clean up in AssetClassService
   }
 }

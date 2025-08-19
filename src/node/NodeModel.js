@@ -25,10 +25,10 @@ export class NodeModel {
     return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 
-  static fromNeo4jNode(node) {
+  static fromNeo4jNode(node) {my
     const nodeProps = node.properties
     let properties = {}
-    
+
     // Extract custom properties (exclude system properties)
     const systemProps = ['assetClassId', 'title', 'createdBy', 'createdDate', 'isActive', 'tempUID']
     for (const [key, value] of Object.entries(nodeProps)) {
@@ -36,7 +36,7 @@ export class NodeModel {
         properties[key] = value
       }
     }
-    
+
     return new NodeModel({
       nodeId: node.identity?.toString(),
       tempUID: nodeProps.tempUID,

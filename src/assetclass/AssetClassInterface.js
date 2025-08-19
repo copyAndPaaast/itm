@@ -27,4 +27,24 @@ export class AssetClassInterface {
   async assetClassExists(className) {
     throw new Error('assetClassExists method must be implemented')
   }
+
+  async getAssetClassByName(className) {
+    throw new Error('getAssetClassByName method must be implemented')
+  }
+
+  async validatePropertiesForAssetClass(assetClassId, properties) {
+    throw new Error('validatePropertiesForAssetClass method must be implemented')
+  }
+
+  async validatePropertiesForAssetClassName(className, properties) {
+    throw new Error('validatePropertiesForAssetClassName method must be implemented')
+  }
+
+  async getAssetClassSchema(assetClassId) {
+    throw new Error('getAssetClassSchema method must be implemented')
+  }
+
+  async getAssetClassSchemaByName(className) {
+    throw new Error('getAssetClassSchemaByName method must be implemented')
+  }
 }

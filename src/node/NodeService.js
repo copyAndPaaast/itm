@@ -1,24 +1,17 @@
-import neo4j from 'neo4j-driver'
-import dotenv from 'dotenv'
 import { NodeInterface } from './NodeInterface.js'
 import { NodeModel } from './NodeModel.js'
 import { AssetClassService } from '../assetclass/AssetClassService.js'
-
-dotenv.config()
+import { Neo4jService } from '../database/Neo4jService.js'
 
 export class NodeService extends NodeInterface {
   constructor() {
     super()
-    this.driver = neo4j.driver(
-      process.env.NEO4J_URI,
-      neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
-    )
-    this.database = process.env.NEO4J_DATABASE || 'neo4j'
+    this.neo4jService = Neo4jService.getInstance()
     this.assetClassService = new AssetClassService()
   }
 
-  async createNode(assetClassId, properties, title) {
-    const session = this.driver.session({ database: this.database })
+  async createNode(assetClassId, properties, title, systems = []) {
+    const session = this.neo4jService.getSession()
 
     try {
       // Get AssetClass to validate properties and get className for labels
@@ -33,11 +26,14 @@ export class NodeService extends NodeInterface {
         throw new Error(`Property validation failed: ${validation.errors.join(', ')}`)
       }
 
+      // Validate system labels
+      const validatedSystems = this.validateSystemLabels(systems)
+      
       const node = new NodeModel({
         assetClassId,
         title,
         properties,
-        labels: ['Asset', assetClass.className]
+        labels: ['Asset', assetClass.className, ...validatedSystems]
       })
 
       // Create node with both Asset and AssetClass name labels
@@ -62,7 +58,7 @@ export class NodeService extends NodeInterface {
   }
 
   async getNode(nodeId) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
 
     try {
       const result = await session.run(
@@ -71,7 +67,7 @@ export class NodeService extends NodeInterface {
         WHERE id(n) = $nodeId
         RETURN n
         `,
-        { nodeId: neo4j.int(nodeId) }
+        { nodeId: this.neo4jService.int(nodeId) }
       )
 
       if (result.records.length === 0) {
@@ -85,7 +81,7 @@ export class NodeService extends NodeInterface {
   }
 
   async getAllNodes() {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
 
     try {
       const result = await session.run(
@@ -106,7 +102,7 @@ export class NodeService extends NodeInterface {
   }
 
   async getNodesByAssetClass(assetClassId) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
 
     try {
       const result = await session.run(
@@ -128,7 +124,7 @@ export class NodeService extends NodeInterface {
   }
 
   async updateNode(nodeId, properties) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
 
     try {
       // Get existing node to validate against its AssetClass
@@ -158,7 +154,7 @@ export class NodeService extends NodeInterface {
         RETURN n
         `,
         {
-          nodeId: neo4j.int(nodeId),
+          nodeId: this.neo4jService.int(nodeId),
           properties
         }
       )
@@ -174,7 +170,7 @@ export class NodeService extends NodeInterface {
   }
 
   async deleteNode(nodeId) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
 
     try {
       const result = await session.run(
@@ -184,7 +180,7 @@ export class NodeService extends NodeInterface {
         DELETE n
         RETURN count(n) as deletedCount
         `,
-        { nodeId: neo4j.int(nodeId) }
+        { nodeId: this.neo4jService.int(nodeId) }
       )
 
       return result.records[0]?.get('deletedCount')?.toNumber() > 0
@@ -193,20 +189,8 @@ export class NodeService extends NodeInterface {
     }
   }
 
-  async validateNodeProperties(assetClassId, properties) {
-    const assetClass = await this.assetClassService.getAssetClass(assetClassId)
-    if (!assetClass) {
-      return {
-        valid: false,
-        errors: [`AssetClass with ID '${assetClassId}' not found`]
-      }
-    }
-
-    return assetClass.validateAllProperties(properties)
-  }
-
   async nodeExists(nodeId) {
-    const session = this.driver.session({ database: this.database })
+    const session = this.neo4jService.getSession()
 
     try {
       const result = await session.run(
@@ -215,7 +199,7 @@ export class NodeService extends NodeInterface {
         WHERE id(n) = $nodeId
         RETURN count(n) > 0 as exists
         `,
-        { nodeId: neo4j.int(nodeId) }
+        { nodeId: this.neo4jService.int(nodeId) }
       )
 
       return result.records[0]?.get('exists') || false
@@ -224,8 +208,27 @@ export class NodeService extends NodeInterface {
     }
   }
 
+  validateSystemLabels(systems) {
+    if (!Array.isArray(systems)) {
+      throw new Error('Systems parameter must be an array')
+    }
+
+    return systems.map(system => {
+      if (!system || typeof system !== 'string') {
+        throw new Error('System label must be a non-empty string')
+      }
+      
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(system)) {
+        throw new Error('System label must start with a letter and contain only letters, numbers, and underscores')
+      }
+      
+      return system
+    })
+  }
+
   async close() {
-    await this.driver.close()
+    // Neo4j connection is managed by Neo4jService singleton
+    // Only close AssetClassService resources
     await this.assetClassService.close()
   }
 }

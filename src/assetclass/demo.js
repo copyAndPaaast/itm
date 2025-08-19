@@ -7,6 +7,9 @@ async function runAssetClassDemo() {
     console.log('Creating AssetClasses in Neo4j...')
     console.log('==================================')
     
+    console.log('💡 Note: AssetClassService uses centralized Neo4jService for database connections')
+    console.log('   Run `node src/database/demo.js` to see Neo4j connection management demo\n')
+    
     // Create Server AssetClass
     const serverClass = await service.createAssetClass(
       'Server',

@@ -1,6 +1,6 @@
 export class NodeInterface {
   
-  async createNode(assetClassId, properties, title) {
+  async createNode(assetClassId, properties, title, systems = []) {
     throw new Error('createNode method must be implemented')
   }
 
@@ -22,10 +22,6 @@ export class NodeInterface {
 
   async deleteNode(nodeId) {
     throw new Error('deleteNode method must be implemented')
-  }
-
-  async validateNodeProperties(assetClassId, properties) {
-    throw new Error('validateNodeProperties method must be implemented')
   }
 
   async nodeExists(nodeId) {

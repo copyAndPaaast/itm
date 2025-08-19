@@ -137,3 +137,23 @@ CREATE (a:Server)-[:HOSTS {port: 8080, protocol: "HTTP", status: "active"}]->(b:
 - [ ] Core graph operations
 - [ ] Testing framework
 - [ ] Documentation
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+## MANDATORY: Function Duplication Check
+Before implementing any new method or function:
+1. **Check if the method already exists** in the appropriate service module
+2. **Verify if it belongs in the current module** or should be moved to its correct service
+3. **Avoid duplicating functionality** across different modules
+4. **Use existing methods** from their proper services rather than recreating them
+
+Example violations to avoid:
+- Adding `getAvailableAssetClasses()` to NodeFactory when it exists in AssetClassService
+- Adding `validateProperties()` to NodeFactory when it should be in AssetClassService  
+- Creating wrapper methods that just call other service methods without adding value
+
+**Correct approach**: Call methods directly from their appropriate service (AssetClassService, NodeService, SystemService) rather than wrapping them unnecessarily.
