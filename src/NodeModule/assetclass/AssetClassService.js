@@ -1,6 +1,6 @@
 import { AssetClassInterface } from './AssetClassInterface.js'
 import { AssetClassModel } from './AssetClassModel.js'
-import { Neo4jService } from '../database/Neo4jService.js'
+import { Neo4jService } from '../../database/Neo4jService.js'
 
 export class AssetClassService extends AssetClassInterface {
   constructor() {
@@ -26,7 +26,7 @@ export class AssetClassService extends AssetClassInterface {
 
       const result = await session.run(
         `
-        CREATE (ac:AssetClass $properties)
+        CREATE (ac:_AssetClass $properties)
         RETURN ac
         `,
         { properties: assetClass.toNeo4jProperties() }
@@ -48,7 +48,7 @@ export class AssetClassService extends AssetClassInterface {
     try {
       const result = await session.run(
         `
-        MATCH (ac:AssetClass)
+        MATCH (ac:_AssetClass)
         WHERE (CASE WHEN $classId IS NOT NULL THEN id(ac) = $classId ELSE false END) OR 
               (CASE WHEN $className IS NOT NULL THEN ac.className = $className ELSE false END)
         RETURN ac
@@ -63,7 +63,7 @@ export class AssetClassService extends AssetClassInterface {
         // Get available classes for error message using a new session
         const availableResult = await session.run(
           `
-          MATCH (ac:AssetClass)
+          MATCH (ac:_AssetClass)
           WHERE ac.isActive = true
           RETURN ac.className + ' (' + toString(id(ac)) + ')' as classInfo
           ORDER BY ac.className
@@ -85,7 +85,7 @@ export class AssetClassService extends AssetClassInterface {
     try {
       const result = await session.run(
         `
-        MATCH (ac:AssetClass)
+        MATCH (ac:_AssetClass)
         WHERE ac.isActive = true
         RETURN ac
         ORDER BY ac.className
@@ -123,7 +123,7 @@ export class AssetClassService extends AssetClassInterface {
 
       const result = await session.run(
         `
-        MATCH (ac:AssetClass)
+        MATCH (ac:_AssetClass)
         WHERE id(ac) = $classId
         SET ac += $updates
         RETURN ac
@@ -150,7 +150,7 @@ export class AssetClassService extends AssetClassInterface {
     try {
       const result = await session.run(
         `
-        MATCH (ac:AssetClass)
+        MATCH (ac:_AssetClass)
         WHERE id(ac) = $classId
         DELETE ac
         RETURN count(ac) as deletedCount
@@ -190,7 +190,7 @@ export class AssetClassService extends AssetClassInterface {
     try {
       const result = await session.run(
         `
-        MATCH (ac:AssetClass)
+        MATCH (ac:_AssetClass)
         WHERE ac.className = $className
         RETURN count(ac) > 0 as exists
         `,

@@ -1,4 +1,4 @@
-import { Neo4jService } from './Neo4jService.js'
+import { Neo4jService } from '../database/Neo4jService.js'
 
 async function databaseDemo() {
   console.log('\n=== Neo4j Database Service Demo ===\n')
@@ -144,7 +144,7 @@ async function databaseDemo() {
 }
 
 // Run demo if this file is executed directly
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   databaseDemo()
     .then(() => {
       console.log('\nDatabase demo completed successfully!')

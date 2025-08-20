@@ -189,3 +189,226 @@ RETURN g, systemMembers, collect(toString(id(allMembers))) as allMembers
 ```
 
 **Goal**: Maintain readable, maintainable, and performant Neo4j interactions.
+
+## CRITICAL: Module Independence and Separation of Concerns
+
+### Core Principle
+**Modules MUST remain ignorant of other modules and components.** Each module should only know about its own domain and responsibilities.
+
+### ❌ FORBIDDEN - Module Cross-Dependencies
+- RelationshipService handling Group relationships
+- NodeService knowing about Group membership logic
+- AssetClass operations mixed with Node operations
+- Any module calling methods from another module's domain
+
+### ✅ REQUIRED - Clean Module Boundaries
+Each module operates only within its domain:
+
+**RelationshipService:**
+- ONLY Asset-to-Asset relationships
+- NO Group relationships (use GroupService)
+- NO Node creation (use NodeService)
+
+**GroupService:**
+- ONLY Group operations and membership
+- NO Asset relationships (use RelationshipService)
+- Handles its own `:_MEMBER_OF` relationships
+
+**NodeService:**
+- ONLY Asset node operations
+- NO Group membership management
+- NO Relationship creation
+
+**AssetClassService:**
+- ONLY AssetClass template management
+- NO Asset node creation
+- NO Relationship definitions
+
+### Implementation Rules
+1. **Single Responsibility**: Each module handles ONE domain
+2. **No Cross-Module Calls**: Never call methods from other service modules
+3. **Clear APIs**: Interface methods reflect only module's domain
+4. **Domain Validation**: Reject operations outside module scope
+5. **Error Messages**: Guide users to correct module for their needs
+
+### Example Violations to Avoid
+```javascript
+// ❌ WRONG - RelationshipService handling groups
+relationshipService.createRelationship({
+  fromType: 'Group', // NO! Use GroupService
+  toType: 'Asset'
+})
+
+// ❌ WRONG - NodeService managing group membership  
+nodeService.addToGroup({nodeId, groupId}) // NO! Use GroupService
+
+// ❌ WRONG - AssetClassService creating nodes
+assetClassService.createNodeFromClass() // NO! Use NodeService
+```
+
+### Correct Approach
+```javascript
+// ✅ CORRECT - Each module handles its domain
+relationshipService.createRelationship({...}) // Asset-to-Asset only
+groupService.addMemberToGroup({...})           // Group membership
+nodeService.createNode({...})                  // Node creation
+assetClassService.createAssetClass({...})      // Template management
+```
+
+### Benefits of Module Independence
+- **Maintainability**: Changes isolated to single modules
+- **Testability**: Each module tested independently  
+- **Clarity**: Clear responsibility boundaries
+- **Scalability**: Modules can evolve independently
+- **Debugging**: Issues contained to specific domains
+
+**REMEMBER: When tempted to add cross-module functionality, create a higher-level orchestrator service instead of breaking module boundaries.**
+
+## Cross-Platform Path Handling
+
+### Issue
+Demo files use `import.meta.url` comparison to detect if they're run directly, but path handling differs between platforms:
+- **macOS/Linux**: `process.argv[1]` already uses forward slashes
+- **Windows**: `process.argv[1]` uses backslashes, needs conversion
+
+### Current Problem
+```javascript
+// This fails on macOS - creates extra slash
+if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+```
+
+### Solutions
+1. **Simple fix**: Remove extra slash and backslash replacement
+   ```javascript
+   if (import.meta.url === `file://${process.argv[1]}`) {
+   ```
+
+2. **Cross-platform helper function**: Create utility for reliable path comparison
+   ```javascript
+   function isMainModule(importMetaUrl) {
+     const currentPath = process.argv[1]
+     const normalizedPath = process.platform === 'win32' 
+       ? currentPath.replace(/\\/g, '/') 
+       : currentPath
+     return importMetaUrl === `file://${normalizedPath}`
+   }
+   ```
+
+3. **Use Node.js built-ins**: 
+   ```javascript
+   import { fileURLToPath } from 'url'
+   import { resolve } from 'path'
+   
+   const __filename = fileURLToPath(import.meta.url)
+   if (__filename === resolve(process.argv[1])) {
+   ```
+
+### Recommendation
+**For all demo files**: Use simple fix (option 1) since it works on both platforms, or implement the cross-platform helper function for more robust detection.
+
+## ITM App vs User Data - Label-Based Separation
+
+### Concept
+Use different Neo4j labels to distinguish between ITM application internals and user business data:
+
+- **User/Business Items**: `:Group`, `:LOCATED_IN`, `:ASSIGNED_TO`, `:OWNS`, `:REPORTS_TO`
+- **ITM App System Items**: `:_AssetClass`, `:_Group`, `:_MEMBER_OF`, `:_DEPENDS_ON`, `:_CONFIG_REF`, `:_TEMPLATE_LINK`
+
+### Implementation Principle
+**Module retrieval functions should only know about their specific labels** and return items that belong to their domain:
+
+- **GroupService**: Only returns `:Group` nodes (user-created groups, not `:_Group` ITM app internal groups)
+- **RelationshipService**: Only returns user relationship types (`:LOCATED_IN`, `:ASSIGNED_TO`, etc. - not `:_MEMBER_OF`, `:_DEPENDS_ON` ITM app internals)
+- **NodeService**: Returns `:Asset` nodes (user IT assets, not ITM app internal nodes)
+
+### Module Responsibility
+```javascript
+// GroupService - only knows about :Group
+async getAllGroups() {
+  return session.run('MATCH (g:Group) WHERE g.isActive = true RETURN g')
+}
+
+// RelationshipService - only knows about user relationship types
+async getAllRelationshipTypes() {
+  return session.run('MATCH ()-[r]-() RETURN DISTINCT type(r) WHERE NOT type(r) STARTS WITH "_"')
+}
+
+// ITM App internal services would handle :_Group, :_DEPENDS_ON separately
+async getAppInternalGroups() {
+  return session.run('MATCH (sg:_Group) WHERE sg.isActive = true RETURN sg')
+}
+
+async getAppInternalRelationships() {
+  return session.run('MATCH ()-[r]-() WHERE type(r) STARTS WITH "_" RETURN DISTINCT type(r)')
+}
+```
+
+### Benefits
+- **Clean separation**: Modules naturally only see their domain
+- **No filtering needed**: Neo4j label matching handles visibility automatically
+- **Better performance**: Label indexes instead of property filtering
+- **Self-documenting**: Labels clearly show system vs user items in Neo4j Browser
+- **Native Neo4j**: Leverages built-in label functionality
+- **Module isolation**: Each service only knows about its own label space
+
+### Cross-Module Access
+When ITM app internal operations need to access both user data and app internals, use higher-level services or explicit multi-label queries:
+
+```javascript
+// ITM App internal service combining both domains
+async getAllGroupsIncludingAppInternals() {
+  return session.run('MATCH (g) WHERE g:Group OR g:_Group RETURN g')
+}
+```
+
+### ITM App Internal Node Example
+```cypher
+// Example: ITM app creates internal template nodes for system functionality
+CREATE (template:_NodeTemplate {
+  templateName: "ServerTemplate",
+  defaultProperties: "{'cpu_cores': 4, 'memory_gb': 16}",
+  requiredFields: "['hostname', 'ip_address']",
+  createdBy: "ITM_APP",
+  version: "1.0"
+})
+
+// ITM app internal relationship tracking dependencies between user nodes
+CREATE (server1:Asset)-[:_DEPENDS_ON {dependency_type: "network", strength: "critical"}]->(router:Asset)
+```
+
+**These ITM app internal items should never appear in user-facing lists or relationship dropdowns.**
+
+## Code Changes Required
+
+### 1. RelationshipService.js
+**File:** `src/relationship/RelationshipService.js`
+**Method:** `getAllRelationshipTypes()`
+**Change:** Add filter to exclude relationships starting with `_`
+```javascript
+// Add WHERE clause to filter ITM app internals
+WHERE NOT type(r) STARTS WITH "_"
+```
+
+### 2. RelationshipInterface.js  
+**File:** `src/relationship/RelationshipInterface.js`
+**Method:** `getAllRelationshipTypes()`
+**Change:** Update method signature and documentation to clarify it returns only user relationships
+
+### 3. Demo Files - Relationship Examples
+**Files to update:**
+- `src/relationship/demo.js`
+- `src/assetclass/demo.js` (if it shows relationships)
+- `src/node/demo.js` (if it shows relationships)
+
+**Change:** Replace `DEPENDS_ON`, `CONNECTS_TO`, `HOSTS` with user relationships like `MEMBER_OF`, `LOCATED_IN`, `ASSIGNED_TO`
+
+### 4. Documentation Updates
+**Files to update:**
+- `src/relationship/README.md`
+- Any relationship examples in module READMEs
+
+**Change:** Update relationship examples to show user relationships, not ITM app internals
+
+### 5. Verify NodeService Filtering
+**File:** `src/node/NodeService.js`
+**Check:** Ensure `getAllNodes()` only returns `:Asset` nodes, not ITM app internal node types

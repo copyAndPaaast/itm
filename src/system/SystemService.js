@@ -1,6 +1,6 @@
 import { SystemInterface } from './SystemInterface.js'
 import { SystemModel } from './SystemModel.js'
-import { NodeService } from '../node/NodeService.js'
+import { NodeService } from '../NodeModule/node/NodeService.js'
 import { Neo4jService } from '../database/Neo4jService.js'
 
 export class SystemService extends SystemInterface {

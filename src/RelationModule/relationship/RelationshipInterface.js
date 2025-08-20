@@ -1,6 +1,6 @@
 export class RelationshipInterface {
   
-  async createRelationship({fromId, toId, relationshipType, properties = {}, fromType = 'Asset', toType = 'Asset'}) {
+  async createRelationship({fromId, toId, relationshipClassId, properties = {}}) {
     throw new Error('createRelationship method must be implemented')
   }
 
@@ -8,15 +8,15 @@ export class RelationshipInterface {
     throw new Error('getRelationship method must be implemented')
   }
 
-  async getRelationshipsFrom({nodeId, nodeType = 'Asset'}) {
+  async getRelationshipsFrom({nodeId}) {
     throw new Error('getRelationshipsFrom method must be implemented')
   }
 
-  async getRelationshipsTo({nodeId, nodeType = 'Asset'}) {
+  async getRelationshipsTo({nodeId}) {
     throw new Error('getRelationshipsTo method must be implemented')
   }
 
-  async getAllRelationships({nodeId, nodeType = 'Asset'}) {
+  async getAllRelationships({nodeId}) {
     throw new Error('getAllRelationships method must be implemented')
   }
 
@@ -32,7 +32,11 @@ export class RelationshipInterface {
     throw new Error('getRelationshipsByType method must be implemented')
   }
 
-  async relationshipExists({fromId, toId, relationshipType, fromType = 'Asset', toType = 'Asset'}) {
+  async relationshipExists({fromId, toId, relationshipType}) {
     throw new Error('relationshipExists method must be implemented')
+  }
+
+  async getAllRelationshipTypes() {
+    throw new Error('getAllRelationshipTypes method must be implemented')
   }
 }

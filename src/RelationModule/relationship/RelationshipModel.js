@@ -7,6 +7,7 @@ export class RelationshipModel {
     fromType = 'Asset', // 'Asset' or 'Group'
     toType = 'Asset',   // 'Asset' or 'Group'
     relationshipType,
+    relationshipClassId = null,
     properties = {},
     createdBy = 'system',
     createdDate = new Date().toISOString(),
@@ -19,6 +20,7 @@ export class RelationshipModel {
     this.fromType = fromType
     this.toType = toType
     this.relationshipType = relationshipType
+    this.relationshipClassId = relationshipClassId
     this.properties = properties
     this.createdBy = createdBy
     this.createdDate = createdDate
@@ -37,7 +39,7 @@ export class RelationshipModel {
     const toType = toNode.labels.includes('Group') ? 'Group' : 'Asset'
 
     // Extract custom properties (exclude system properties)
-    const systemProps = ['tempUID', 'createdBy', 'createdDate', 'isActive']
+    const systemProps = ['tempUID', 'relationshipClassId', 'createdBy', 'createdDate', 'isActive']
     let properties = {}
     
     for (const [key, value] of Object.entries(relProps)) {
@@ -54,6 +56,7 @@ export class RelationshipModel {
       fromType,
       toType,
       relationshipType: relationship.type,
+      relationshipClassId: relProps.relationshipClassId,
       properties,
       createdBy: relProps.createdBy,
       createdDate: relProps.createdDate,
@@ -64,6 +67,7 @@ export class RelationshipModel {
   toNeo4jProperties() {
     return {
       tempUID: this.tempUID,
+      relationshipClassId: this.relationshipClassId,
       ...this.properties,
       createdBy: this.createdBy,
       createdDate: this.createdDate,

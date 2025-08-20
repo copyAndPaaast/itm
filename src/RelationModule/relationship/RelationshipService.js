@@ -1,40 +1,58 @@
 import { RelationshipInterface } from './RelationshipInterface.js'
 import { RelationshipModel } from './RelationshipModel.js'
-import { Neo4jService } from '../database/Neo4jService.js'
+import { Neo4jService } from '../../database/Neo4jService.js'
+import { RelationshipClassService } from '../relationshipclass/RelationshipClassService.js'
 
 export class RelationshipService extends RelationshipInterface {
   constructor() {
     super()
     this.neo4jService = Neo4jService.getInstance()
+    this.relationshipClassService = new RelationshipClassService()
   }
 
-  async createRelationship({fromId, toId, relationshipType, properties = {}, fromType = 'Asset', toType = 'Asset'}) {
+  async createRelationship({fromId, toId, relationshipClassId, properties = {}}) {
     const session = this.neo4jService.getSession()
     
     try {
-      // Validate relationship type name (Neo4j requirements)
-      if (!this.isValidRelationshipType(relationshipType)) {
-        throw new Error(`Invalid relationship type '${relationshipType}'. Must be uppercase with underscores only.`)
+      // Get and validate RelationshipClass
+      const relationshipClass = await this.relationshipClassService.getRelationshipClass({classId: relationshipClassId})
+      if (!relationshipClass) {
+        const availableClasses = await this.relationshipClassService.getAllRelationshipClasses()
+        const availableIds = availableClasses.map(rc => `${rc.relationshipClassName} (${rc.classId})`).join(', ')
+        throw new Error(`No RelationshipClass found for ID '${relationshipClassId}'. Available classes: ${availableIds}`)
+      }
+
+      // RelationshipService only handles Asset-to-Asset relationships
+      const nodeTypeValidation = relationshipClass.validateNodeTypes('Asset', 'Asset')
+      if (!nodeTypeValidation.valid) {
+        throw new Error(`RelationshipService only handles Asset-to-Asset relationships. Use GroupService for group-related relationships.`)
+      }
+
+      // Validate properties against RelationshipClass schema
+      const propertyValidation = relationshipClass.validateAllProperties(properties)
+      if (!propertyValidation.valid) {
+        throw new Error(`Property validation failed: ${propertyValidation.errors.join(', ')}`)
       }
 
       const relationship = new RelationshipModel({
         fromId,
         toId,
-        fromType,
-        toType,
-        relationshipType,
+        fromType: 'Asset',
+        toType: 'Asset',
+        relationshipType: relationshipClass.relationshipType,
+        relationshipClassId: relationshipClass.classId,
         properties
       })
 
-      // Build the Cypher query dynamically based on node types
-      const fromLabel = fromType === 'Group' ? 'Group' : 'Asset'
-      const toLabel = toType === 'Group' ? 'Group' : 'Asset'
+      // RelationshipService only handles Asset-to-Asset relationships
+      const fromLabel = 'Asset'
+      const toLabel = 'Asset'
 
       const result = await session.run(
         `
         MATCH (from:${fromLabel}), (to:${toLabel})
         WHERE id(from) = $fromId AND id(to) = $toId
-        CREATE (from)-[r:${relationshipType} $properties]->(to)
+        CREATE (from)-[r:${relationship.relationshipType} $properties]->(to)
         RETURN r, from, to
         `,
         { 
@@ -45,7 +63,7 @@ export class RelationshipService extends RelationshipInterface {
       )
 
       if (result.records.length === 0) {
-        throw new Error(`Failed to create relationship. Source ${fromType}:${fromId} or target ${toType}:${toId} not found.`)
+        throw new Error(`Failed to create relationship. Source Asset:${fromId} or target Asset:${toId} not found.`)
       }
 
       const record = result.records[0]
@@ -87,11 +105,11 @@ export class RelationshipService extends RelationshipInterface {
     }
   }
 
-  async getRelationshipsFrom({nodeId, nodeType = 'Asset'}) {
+  async getRelationshipsFrom({nodeId}) {
     const session = this.neo4jService.getSession()
     
     try {
-      const fromLabel = nodeType === 'Group' ? 'Group' : 'Asset'
+      const fromLabel = 'Asset'
       
       const result = await session.run(
         `
@@ -115,11 +133,11 @@ export class RelationshipService extends RelationshipInterface {
     }
   }
 
-  async getRelationshipsTo({nodeId, nodeType = 'Asset'}) {
+  async getRelationshipsTo({nodeId}) {
     const session = this.neo4jService.getSession()
     
     try {
-      const toLabel = nodeType === 'Group' ? 'Group' : 'Asset'
+      const toLabel = 'Asset'
       
       const result = await session.run(
         `
@@ -143,11 +161,11 @@ export class RelationshipService extends RelationshipInterface {
     }
   }
 
-  async getAllRelationships({nodeId, nodeType = 'Asset'}) {
+  async getAllRelationships({nodeId}) {
     const session = this.neo4jService.getSession()
     
     try {
-      const nodeLabel = nodeType === 'Group' ? 'Group' : 'Asset'
+      const nodeLabel = 'Asset'
       
       const result = await session.run(
         `
@@ -266,12 +284,12 @@ export class RelationshipService extends RelationshipInterface {
     }
   }
 
-  async relationshipExists({fromId, toId, relationshipType, fromType = 'Asset', toType = 'Asset'}) {
+  async relationshipExists({fromId, toId, relationshipType}) {
     const session = this.neo4jService.getSession()
     
     try {
-      const fromLabel = fromType === 'Group' ? 'Group' : 'Asset'
-      const toLabel = toType === 'Group' ? 'Group' : 'Asset'
+      const fromLabel = 'Asset'
+      const toLabel = 'Asset'
 
       const result = await session.run(
         `
@@ -291,10 +309,69 @@ export class RelationshipService extends RelationshipInterface {
     }
   }
 
+  async getAllRelationshipTypes() {
+    // Get relationship types from RelationshipClasses (templates)
+    const relationshipClasses = await this.relationshipClassService.getAllRelationshipClasses()
+    return relationshipClasses
+      .filter(rc => !rc.relationshipType.startsWith('_')) // Filter out ITM app internal types
+      .map(rc => rc.relationshipType)
+      .sort()
+  }
+
+  async getAvailableRelationshipClasses() {
+    // Get user-facing RelationshipClasses for UI selection
+    const relationshipClasses = await this.relationshipClassService.getAllRelationshipClasses()
+    return relationshipClasses
+      .filter(rc => !rc.relationshipType.startsWith('_')) // Filter out ITM app internal types
+      .map(rc => ({
+        classId: rc.classId,
+        relationshipClassName: rc.relationshipClassName,
+        relationshipType: rc.relationshipType,
+        description: rc.description,
+        allowedFromTypes: rc.allowedFromTypes,
+        allowedToTypes: rc.allowedToTypes
+      }))
+      .sort((a, b) => a.relationshipClassName.localeCompare(b.relationshipClassName))
+  }
+
+  async getRelationshipClassPropertySchema({relationshipClassId}) {
+    const relationshipClass = await this.relationshipClassService.getRelationshipClass({classId: relationshipClassId})
+    if (!relationshipClass) {
+      throw new Error(`RelationshipClass with ID '${relationshipClassId}' not found`)
+    }
+
+    return {
+      classId: relationshipClass.classId,
+      relationshipClassName: relationshipClass.relationshipClassName,
+      relationshipType: relationshipClass.relationshipType,
+      description: relationshipClass.description,
+      propertySchema: relationshipClass.propertySchema,
+      requiredProperties: relationshipClass.requiredProperties,
+      optionalProperties: relationshipClass.getOptionalProperties(),
+      allowedFromTypes: relationshipClass.allowedFromTypes,
+      allowedToTypes: relationshipClass.allowedToTypes,
+      // Provide default values for properties
+      defaultProperties: this.getDefaultPropertiesFromSchema(relationshipClass.propertySchema)
+    }
+  }
+
+  getDefaultPropertiesFromSchema(propertySchema) {
+    const defaults = {}
+    for (const [propName, schema] of Object.entries(propertySchema)) {
+      if (schema.default !== undefined) {
+        defaults[propName] = schema.default
+      } else if (schema.values && schema.values.length > 0) {
+        defaults[propName] = schema.values[0] // First allowed value as default
+      }
+    }
+    return defaults
+  }
+
   // Helper method to validate Neo4j relationship type names
   isValidRelationshipType(relationshipType) {
     // Neo4j relationship types should be uppercase with underscores
-    return /^[A-Z][A-Z0-9_]*$/.test(relationshipType)
+    // ITM app internal relationships start with underscore
+    return /^_?[A-Z][A-Z0-9_]*$/.test(relationshipType)
   }
 
   // Utility method to get relationship statistics
@@ -326,6 +403,40 @@ export class RelationshipService extends RelationshipInterface {
     }
   }
 
+
+  async getRelationshipClass({relationshipType}) {
+    return await this.relationshipClassService.getRelationshipClassByType({relationshipType})
+  }
+
+  async validateRelationshipProperties({relationshipType, properties}) {
+    return await this.relationshipClassService.validateRelationshipProperties({relationshipType, properties})
+  }
+
+  async getRelationshipsByClass({relationshipClassId}) {
+    const session = this.neo4jService.getSession()
+    
+    try {
+      const result = await session.run(
+        `
+        MATCH (from)-[r]->(to)
+        WHERE r.relationshipClassId = $relationshipClassId AND r.isActive = true
+        RETURN r, from, to
+        ORDER BY r.createdDate DESC
+        `,
+        { relationshipClassId }
+      )
+
+      return result.records.map(record => 
+        RelationshipModel.fromNeo4jRelationship(
+          record.get('r'),
+          record.get('from'),
+          record.get('to')
+        )
+      )
+    } finally {
+      await session.close()
+    }
+  }
 
   async close() {
     // Neo4j connection is managed by Neo4jService singleton

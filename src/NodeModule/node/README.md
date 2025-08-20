@@ -71,7 +71,7 @@ const serverClass = await service.createAssetClass(
 
 ## Neo4j Schema
 ```cypher
-CREATE (ac:AssetClass {
+CREATE (ac:_AssetClass {
   className: "Server",
   propertySchema: {...},
   requiredProperties: [...],

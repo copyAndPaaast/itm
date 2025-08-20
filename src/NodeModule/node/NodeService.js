@@ -1,7 +1,7 @@
 import { NodeInterface } from './NodeInterface.js'
 import { NodeModel } from './NodeModel.js'
 import { AssetClassService } from '../assetclass/AssetClassService.js'
-import { Neo4jService } from '../database/Neo4jService.js'
+import { Neo4jService } from '../../database/Neo4jService.js'
 
 export class NodeService extends NodeInterface {
   constructor() {

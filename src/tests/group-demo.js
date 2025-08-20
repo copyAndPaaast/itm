@@ -1,7 +1,7 @@
-import { GroupService } from './GroupService.js'
-import { NodeService } from '../node/NodeService.js'
-import { AssetClassService } from '../assetclass/AssetClassService.js'
-import { RelationshipService } from '../relationship/RelationshipService.js'
+import { GroupService } from '../group/GroupService.js'
+import { NodeService } from '../NodeModule/node/NodeService.js'
+import { AssetClassService } from '../NodeModule/assetclass/AssetClassService.js'
+import { RelationshipService } from '../RelationModule/relationship/RelationshipService.js'
 
 async function groupDemo() {
   console.log('\n=== Group Management & Relationships Demo ===\n')
@@ -137,21 +137,21 @@ async function groupDemo() {
       }
     })
 
-    // Web Server Cluster depends on Backend Services (group -> group)  
+    // Web Server Cluster is part of same network segment as Backend Services (group -> group)  
     const clusterToBackend = await relationshipService.createRelationship({
       fromId: webCluster.groupId,
       toId: backendGroup.groupId,
       fromType: 'Group',
       toType: 'Group', 
-      relationshipType: 'DEPENDS_ON',
+      relationshipType: 'NETWORK_SEGMENT_WITH',
       properties: {
-        dependency: 'database-access',
-        critical: true
+        segment: 'production-network',
+        vlan: 100
       }
     })
 
     console.log('   ✓ Load Balancer DISTRIBUTES_TO Web-Server-Cluster')
-    console.log('   ✓ Web-Server-Cluster DEPENDS_ON Backend-Services')
+    console.log('   ✓ Web-Server-Cluster NETWORK_SEGMENT_WITH Backend-Services')
 
     // === Relationship Analysis ===
     console.log('\\n5. Analyzing group relationships...')

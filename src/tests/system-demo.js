@@ -1,6 +1,6 @@
-import { SystemService } from './SystemService.js'
-import { NodeService } from '../node/NodeService.js'
-import { AssetClassService } from '../assetclass/AssetClassService.js'
+import { SystemService } from '../system/SystemService.js'
+import { NodeService } from '../NodeModule/node/NodeService.js'
+import { AssetClassService } from '../NodeModule/assetclass/AssetClassService.js'
 
 async function systemDemo() {
   console.log('\n=== System Management Demo ===\n')

@@ -1,6 +1,6 @@
-import { NodeFactory } from './NodeFactory.js'
+import { NodeFactory } from '../NodeModule/node/NodeFactory.js'
 import { SystemService } from '../system/SystemService.js'
-import { AssetClassService } from '../assetclass/AssetClassService.js'
+import { AssetClassService } from '../NodeModule/assetclass/AssetClassService.js'
 
 async function runNodeDemo() {
   const factory = new NodeFactory()
@@ -21,8 +21,8 @@ async function runNodeDemo() {
     
     try {
       // Check if Server AssetClass exists, create if not
-      serverClass = await assetClassService.getAssetClass({className: 'Server'})
-      if (!serverClass) {
+      const serverExists = await assetClassService.assetClassExists({className: 'Server'})
+      if (!serverExists) {
         serverClass = await assetClassService.createAssetClass({
           className: 'Server',
           propertySchema: {
@@ -39,10 +39,11 @@ async function runNodeDemo() {
       } else {
         console.log('   ✓ Using existing Server AssetClass')
       }
+      serverClass = await assetClassService.getAssetClass({className: 'Server'})
 
       // Check if Database AssetClass exists, create if not
-      databaseClass = await assetClassService.getAssetClass({className: 'Database'})
-      if (!databaseClass) {
+      const databaseExists = await assetClassService.assetClassExists({className: 'Database'})
+      if (!databaseExists) {
         databaseClass = await assetClassService.createAssetClass({
           className: 'Database',
           propertySchema: {
@@ -58,10 +59,11 @@ async function runNodeDemo() {
       } else {
         console.log('   ✓ Using existing Database AssetClass')
       }
+      databaseClass = await assetClassService.getAssetClass({className: 'Database'})
 
       // Check if NetworkDevice AssetClass exists, create if not
-      networkDeviceClass = await assetClassService.getAssetClass({className: 'NetworkDevice'})
-      if (!networkDeviceClass) {
+      const networkDeviceExists = await assetClassService.assetClassExists({className: 'NetworkDevice'})
+      if (!networkDeviceExists) {
         networkDeviceClass = await assetClassService.createAssetClass({
           className: 'NetworkDevice',
           propertySchema: {
@@ -76,6 +78,7 @@ async function runNodeDemo() {
       } else {
         console.log('   ✓ Using existing NetworkDevice AssetClass')
       }
+      networkDeviceClass = await assetClassService.getAssetClass({className: 'NetworkDevice'})
 
     } catch (error) {
       console.log('   ⚠ AssetClass setup error:', error.message)
@@ -299,7 +302,7 @@ async function runNodeDemo() {
   }
 }
 
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   runNodeDemo()
 }
 

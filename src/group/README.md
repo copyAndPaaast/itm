@@ -78,7 +78,7 @@ await relationshipService.createRelationship({
   toId: dbCluster.groupId,
   fromType: 'Asset',
   toType: 'Group',
-  relationshipType: 'DEPENDS_ON'
+  relationshipType: '_MEMBER_OF'
 })
 
 // Group → Asset: Database-Cluster hosted on DataCenter
@@ -228,13 +228,13 @@ CREATE (g:Group {
 })
 
 // Group membership relationships
-CREATE (asset:Asset)-[:MEMBER_OF]->(g:Group)
+CREATE (asset:Asset)-[:_MEMBER_OF]->(g:Group)
 
 // Groups can have system labels  
 CREATE (g:Group:NetworkInfra:CriticalSystems)
 
 // Groups participate in relationships
-CREATE (app:Asset)-[:DEPENDS_ON]->(g:Group)
+CREATE (app:Asset)-[:_MEMBER_OF]->(g:Group)
 CREATE (g1:Group)-[:REPLICATES_TO]->(g2:Group)
 ```
 
