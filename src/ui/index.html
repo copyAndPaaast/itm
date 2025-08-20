@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITM - IT Asset Management System</title>
+    
+    <!-- Favicon (can be added later) -->
+    <!-- <link rel="icon" type="image/x-icon" href="/favicon.ico"> -->
+    
+    <!-- Roboto Font for Material UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Material UI Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        /* Global styles to ensure proper layout */
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        #root {
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* Ensure Cytoscape containers work properly */
+        .cy-container {
+            outline: none;
+        }
+        
+        /* Loading indicator styles */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        /* Fallback styles for older browsers */
+        @supports not (display: flex) {
+            .loading {
+                text-align: center;
+                padding-top: 45vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- React App Container -->
+    <div id="root">
+        <div class="loading">
+            Loading ITM System...
+        </div>
+    </div>
+    
+    <!-- App Scripts will be injected by build tool -->
+    <script type="module" src="./index.jsx"></script>
+</body>
+</html>
