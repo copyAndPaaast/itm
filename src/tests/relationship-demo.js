@@ -261,7 +261,7 @@ async function relationshipDemo() {
     // === RelationshipClass Property Schema Helpers ===
     console.log('\n8. RelationshipClass property schema helpers...')
 
-    const dependsOnSchema = await relationshipService.getRelationshipClassPropertySchema({relationshipClassId: dependsOnClass.classId})
+    const dependsOnSchema = await relationshipClassService.getRelationshipClassPropertySchema({relationshipClassId: dependsOnClass.classId})
     console.log(`\n📋 DEPENDS_ON RelationshipClass schema:`)
     console.log(`   Class ID: ${dependsOnSchema.classId}`)
     console.log(`   Relationship Type: ${dependsOnSchema.relationshipType}`)
@@ -281,7 +281,7 @@ async function relationshipDemo() {
     // === Available RelationshipClasses for UI ===
     console.log('\n10. Available RelationshipClasses for UI selection...')
 
-    const availableForUI = await relationshipService.getAvailableRelationshipClasses()
+    const availableForUI = await relationshipClassService.getAvailableRelationshipClasses()
     console.log(`\n🎯 User-facing RelationshipClasses (${availableForUI.length}):`)
     availableForUI.forEach(rc => {
       console.log(`   • ${rc.relationshipClassName} (${rc.classId})`)
@@ -290,8 +290,42 @@ async function relationshipDemo() {
       console.log(`     Description: ${rc.description || 'No description'}`)
     })
 
+    // === Relationship Direction Switching Demo ===
+    console.log('\n11. Testing relationship direction switching...')
+
+    console.log('\nBefore direction switch:')
+    console.log(`   Web Server (${webServer.nodeId}) DEPENDS_ON Database Server (${dbServer.nodeId})`)
+    
+    // Switch the direction of the dependency relationship
+    const switchedRelationship = await relationshipService.switchRelationshipDirection({
+      relationshipId: webToDependency.relationshipId
+    })
+    
+    console.log('\nAfter direction switch:')
+    console.log(`   Database Server (${switchedRelationship.fromId}) DEPENDS_ON Web Server (${switchedRelationship.toId})`)
+    console.log(`   ✓ Relationship direction successfully switched`)
+    console.log(`   ✓ Properties preserved: ${JSON.stringify(switchedRelationship.properties)}`)
+    console.log(`   ✓ New relationship ID: ${switchedRelationship.relationshipId}`)
+
+    // Verify the switch by checking relationships
+    const dbServerOutgoingAfterSwitch = await relationshipService.getRelationshipsFrom({nodeId: dbServer.nodeId})
+    const webServerIncomingAfterSwitch = await relationshipService.getRelationshipsTo({nodeId: webServer.nodeId})
+    
+    console.log(`\n🔄 Verification after direction switch:`)
+    console.log(`   Database Server outgoing relationships: ${dbServerOutgoingAfterSwitch.length}`)
+    console.log(`   Web Server incoming relationships: ${webServerIncomingAfterSwitch.length}`)
+    
+    // Test switching direction back
+    console.log('\nSwitching direction back to original:')
+    const revertedRelationship = await relationshipService.switchRelationshipDirection({
+      relationshipId: switchedRelationship.relationshipId
+    })
+    
+    console.log(`   ✓ Reverted to original direction`)
+    console.log(`   Web Server (${revertedRelationship.fromId}) DEPENDS_ON Database Server (${revertedRelationship.toId})`)
+
     // === Error Handling Demo ===
-    console.log('\n11. Testing error handling and validation...')
+    console.log('\n12. Testing error handling and validation...')
 
     // Test 1: Try to create relationship with non-existent RelationshipClass
     console.log('\nTesting non-existent RelationshipClass:')
@@ -339,8 +373,19 @@ async function relationshipDemo() {
       console.log(`   ✓ Correctly validated required properties: ${error.message.substring(0, 80)}...`)
     }
 
+    // Test 4: Try to switch direction of non-existent relationship
+    console.log('\nTesting direction switch with non-existent relationship:')
+    try {
+      await relationshipService.switchRelationshipDirection({
+        relationshipId: 999999  // Non-existent relationship ID
+      })
+      console.log('   ❌ ERROR: Should have failed!')
+    } catch (error) {
+      console.log(`   ✓ Correctly handled non-existent relationship: ${error.message.substring(0, 80)}...`)
+    }
+
     console.log('\n=== Demo Complete ===')
-    console.log('RelationshipClass template system and Relationship validation demonstrated successfully!')
+    console.log('RelationshipClass template system, Relationship validation, and direction switching demonstrated successfully!')
 
   } catch (error) {
     console.error('Demo failed:', error)

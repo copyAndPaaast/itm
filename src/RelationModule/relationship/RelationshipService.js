@@ -318,54 +318,7 @@ export class RelationshipService extends RelationshipInterface {
       .sort()
   }
 
-  async getAvailableRelationshipClasses() {
-    // Get user-facing RelationshipClasses for UI selection
-    const relationshipClasses = await this.relationshipClassService.getAllRelationshipClasses()
-    return relationshipClasses
-      .filter(rc => !rc.relationshipType.startsWith('_')) // Filter out ITM app internal types
-      .map(rc => ({
-        classId: rc.classId,
-        relationshipClassName: rc.relationshipClassName,
-        relationshipType: rc.relationshipType,
-        description: rc.description,
-        allowedFromTypes: rc.allowedFromTypes,
-        allowedToTypes: rc.allowedToTypes
-      }))
-      .sort((a, b) => a.relationshipClassName.localeCompare(b.relationshipClassName))
-  }
 
-  async getRelationshipClassPropertySchema({relationshipClassId}) {
-    const relationshipClass = await this.relationshipClassService.getRelationshipClass({classId: relationshipClassId})
-    if (!relationshipClass) {
-      throw new Error(`RelationshipClass with ID '${relationshipClassId}' not found`)
-    }
-
-    return {
-      classId: relationshipClass.classId,
-      relationshipClassName: relationshipClass.relationshipClassName,
-      relationshipType: relationshipClass.relationshipType,
-      description: relationshipClass.description,
-      propertySchema: relationshipClass.propertySchema,
-      requiredProperties: relationshipClass.requiredProperties,
-      optionalProperties: relationshipClass.getOptionalProperties(),
-      allowedFromTypes: relationshipClass.allowedFromTypes,
-      allowedToTypes: relationshipClass.allowedToTypes,
-      // Provide default values for properties
-      defaultProperties: this.getDefaultPropertiesFromSchema(relationshipClass.propertySchema)
-    }
-  }
-
-  getDefaultPropertiesFromSchema(propertySchema) {
-    const defaults = {}
-    for (const [propName, schema] of Object.entries(propertySchema)) {
-      if (schema.default !== undefined) {
-        defaults[propName] = schema.default
-      } else if (schema.values && schema.values.length > 0) {
-        defaults[propName] = schema.values[0] // First allowed value as default
-      }
-    }
-    return defaults
-  }
 
   // Helper method to validate Neo4j relationship type names
   isValidRelationshipType(relationshipType) {
@@ -404,13 +357,6 @@ export class RelationshipService extends RelationshipInterface {
   }
 
 
-  async getRelationshipClass({relationshipType}) {
-    return await this.relationshipClassService.getRelationshipClassByType({relationshipType})
-  }
-
-  async validateRelationshipProperties({relationshipType, properties}) {
-    return await this.relationshipClassService.validateRelationshipProperties({relationshipType, properties})
-  }
 
   async getRelationshipsByClass({relationshipClassId}) {
     const session = this.neo4jService.getSession()
@@ -433,6 +379,250 @@ export class RelationshipService extends RelationshipInterface {
           record.get('to')
         )
       )
+    } finally {
+      await session.close()
+    }
+  }
+
+  async switchRelationshipDirection({relationshipId}) {
+    const session = this.neo4jService.getSession()
+    
+    try {
+      // First, get the current relationship to validate it exists and get its details
+      const currentRelationship = await this.getRelationship({relationshipId})
+      if (!currentRelationship) {
+        throw new Error(`Relationship with ID '${relationshipId}' not found`)
+      }
+
+      // Validate that this is an Asset-to-Asset relationship (RelationshipService restriction)
+      if (!currentRelationship.isAssetToAsset()) {
+        throw new Error('RelationshipService only handles Asset-to-Asset relationships')
+      }
+
+      // Get the RelationshipClass to validate if direction switching is allowed
+      const relationshipClass = await this.relationshipClassService.getRelationshipClass({
+        classId: currentRelationship.relationshipClassId
+      })
+      
+      if (!relationshipClass) {
+        throw new Error(`RelationshipClass '${currentRelationship.relationshipClassId}' not found`)
+      }
+
+      // Validate that the reversed direction is still valid according to RelationshipClass
+      const reverseValidation = relationshipClass.validateNodeTypes('Asset', 'Asset')
+      if (!reverseValidation.valid) {
+        throw new Error(`Cannot switch direction: ${reverseValidation.errors.join(', ')}`)
+      }
+
+      // Perform the direction switch in Neo4j
+      // This creates a new relationship in the opposite direction and deletes the old one
+      const result = await session.run(
+        `
+        MATCH (from)-[oldRel]->(to)
+        WHERE id(oldRel) = $relationshipId
+        CREATE (to)-[newRel:${currentRelationship.relationshipType}]->(from)
+        SET newRel = properties(oldRel)
+        DELETE oldRel
+        RETURN newRel, to as newFrom, from as newTo
+        `,
+        { relationshipId: this.neo4jService.int(relationshipId) }
+      )
+
+      if (result.records.length === 0) {
+        throw new Error(`Failed to switch relationship direction. Relationship with ID '${relationshipId}' not found.`)
+      }
+
+      // Return the new relationship with switched direction
+      const record = result.records[0]
+      return RelationshipModel.fromNeo4jRelationship(
+        record.get('newRel'),
+        record.get('newFrom'),
+        record.get('newTo')
+      )
+    } finally {
+      await session.close()
+    }
+  }
+
+  async analyzeRelationshipClassCompatibility({relationshipId, newRelationshipClassId}) {
+    // Get current relationship
+    const currentRelationship = await this.getRelationship({relationshipId})
+    if (!currentRelationship) {
+      throw new Error(`Relationship with ID '${relationshipId}' not found`)
+    }
+
+    // Get current RelationshipClass
+    const currentRelationshipClass = await this.relationshipClassService.getRelationshipClass({classId: currentRelationship.relationshipClassId})
+    if (!currentRelationshipClass) {
+      throw new Error(`Current RelationshipClass '${currentRelationship.relationshipClassId}' not found`)
+    }
+
+    // Get target RelationshipClass
+    const newRelationshipClass = await this.relationshipClassService.getRelationshipClass({classId: newRelationshipClassId})
+    if (!newRelationshipClass) {
+      throw new Error(`Target RelationshipClass '${newRelationshipClassId}' not found`)
+    }
+
+    // Import compatibility analyzer
+    const { RelationshipPropertyCompatibilityAnalyzer } = await import('../relationshipclass/RelationshipPropertyCompatibilityAnalyzer.js')
+    
+    // Analyze compatibility
+    const analysis = RelationshipPropertyCompatibilityAnalyzer.analyzeRelationshipCompatibility(
+      currentRelationship.properties,
+      currentRelationshipClass,
+      newRelationshipClass
+    )
+
+    // Add relationship-specific information
+    return {
+      ...analysis,
+      relationshipId: relationshipId,
+      currentRelationshipClass: {
+        classId: currentRelationshipClass.classId,
+        relationshipClassName: currentRelationshipClass.relationshipClassName,
+        relationshipType: currentRelationshipClass.relationshipType
+      },
+      newRelationshipClass: {
+        classId: newRelationshipClass.classId,
+        relationshipClassName: newRelationshipClass.relationshipClassName,
+        relationshipType: newRelationshipClass.relationshipType
+      },
+      compatibilityScore: RelationshipPropertyCompatibilityAnalyzer.calculateCompatibilityScore(analysis)
+    }
+  }
+
+  async switchRelationshipClass({relationshipId, newRelationshipClassId, propertyMappings = {}, preserveLostProperties = true}) {
+    const session = this.neo4jService.getSession()
+    
+    try {
+      // First analyze compatibility
+      const compatibility = await this.analyzeRelationshipClassCompatibility({relationshipId, newRelationshipClassId})
+      
+      // Check if the switch is possible (node type compatibility)
+      if (!compatibility.nodeTypeCompatibility.compatible) {
+        throw new Error(`Cannot switch relationship class: ${compatibility.nodeTypeCompatibility.issues.join(', ')}`)
+      }
+      
+      // Get the target RelationshipClass for validation
+      const newRelationshipClass = await this.relationshipClassService.getRelationshipClass({classId: newRelationshipClassId})
+      
+      // Build new properties based on compatibility analysis
+      const newProperties = { ...compatibility.preservedProperties }
+      
+      // Apply user-provided property mappings
+      for (const [prop, value] of Object.entries(propertyMappings)) {
+        newProperties[prop] = value
+      }
+      
+      // Add default values for missing required properties
+      for (const missing of compatibility.missingRequiredProperties) {
+        if (!(missing.property in newProperties)) {
+          if (missing.property in propertyMappings) {
+            newProperties[missing.property] = propertyMappings[missing.property]
+          } else {
+            newProperties[missing.property] = missing.defaultValue
+          }
+        }
+      }
+      
+      // Preserve lost properties in metadata if requested
+      const metadata = {}
+      if (preserveLostProperties && Object.keys(compatibility.lostProperties).length > 0) {
+        metadata._preservedProperties = compatibility.lostProperties
+        metadata._preservedFromClass = compatibility.currentRelationshipClass.relationshipClassName
+        metadata._preservedDate = new Date().toISOString()
+      }
+      
+      // Validate final properties against new RelationshipClass
+      const finalValidation = newRelationshipClass.validateAllProperties(newProperties)
+      if (!finalValidation.valid) {
+        throw new Error(`Property validation failed after mapping: ${finalValidation.errors.join(', ')}`)
+      }
+      
+      // Update the relationship in Neo4j - need to handle relationship type change
+      const currentRelationship = await this.getRelationship({relationshipId})
+      
+      let result
+      if (compatibility.relationshipTypeChange) {
+        // Need to create new relationship with new type and delete old one
+        result = await session.run(
+          `
+          MATCH (from)-[oldRel]->(to)
+          WHERE id(oldRel) = $relationshipId
+          CREATE (from)-[newRel:${newRelationshipClass.relationshipType}]->(to)
+          SET newRel = $newProperties
+          SET newRel.relationshipClassId = $newRelationshipClassId
+          ${Object.keys(metadata).length > 0 ? 'SET newRel += $metadata' : ''}
+          DELETE oldRel
+          RETURN newRel, from, to
+          `,
+          {
+            relationshipId: this.neo4jService.int(relationshipId),
+            newRelationshipClassId: newRelationshipClassId,
+            newProperties: newProperties,
+            ...(Object.keys(metadata).length > 0 ? { metadata } : {})
+          }
+        )
+        
+        if (result.records.length === 0) {
+          throw new Error(`Failed to switch relationship class for relationship ${relationshipId}`)
+        }
+        
+        const record = result.records[0]
+        const updatedRelationship = RelationshipModel.fromNeo4jRelationship(
+          record.get('newRel'),
+          record.get('from'),
+          record.get('to')
+        )
+        
+        return {
+          success: true,
+          relationship: updatedRelationship,
+          relationshipTypeChanged: true,
+          compatibilityAnalysis: compatibility,
+          appliedMappings: propertyMappings,
+          preservedProperties: preserveLostProperties ? compatibility.lostProperties : {}
+        }
+      } else {
+        // Just update properties and class ID
+        result = await session.run(
+          `
+          MATCH (from)-[rel]->(to)
+          WHERE id(rel) = $relationshipId
+          SET rel.relationshipClassId = $newRelationshipClassId
+          SET rel += $newProperties
+          ${Object.keys(metadata).length > 0 ? 'SET rel += $metadata' : ''}
+          RETURN rel, from, to
+          `,
+          {
+            relationshipId: this.neo4jService.int(relationshipId),
+            newRelationshipClassId: newRelationshipClassId,
+            newProperties: newProperties,
+            ...(Object.keys(metadata).length > 0 ? { metadata } : {})
+          }
+        )
+        
+        if (result.records.length === 0) {
+          throw new Error(`Failed to update relationship ${relationshipId}`)
+        }
+        
+        const record = result.records[0]
+        const updatedRelationship = RelationshipModel.fromNeo4jRelationship(
+          record.get('rel'),
+          record.get('from'),
+          record.get('to')
+        )
+        
+        return {
+          success: true,
+          relationship: updatedRelationship,
+          relationshipTypeChanged: false,
+          compatibilityAnalysis: compatibility,
+          appliedMappings: propertyMappings,
+          preservedProperties: preserveLostProperties ? compatibility.lostProperties : {}
+        }
+      }
+      
     } finally {
       await session.close()
     }

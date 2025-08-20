@@ -498,6 +498,96 @@ export class GroupService extends GroupInterface {
     }
   }
 
+  async getNodeGroups({nodeId}) {
+    const session = this.neo4jService.getSession()
+    
+    try {
+      const result = await session.run(
+        `
+        MATCH (node:Asset)-[:_MEMBER_OF]->(g:Group)
+        WHERE id(node) = $nodeId AND g.isActive = true
+        RETURN g
+        ORDER BY g.groupName
+        `,
+        { nodeId: this.neo4jService.int(nodeId) }
+      )
+
+      return result.records.map(record => 
+        GroupModel.fromNeo4jNode(record.get('g'))
+      )
+    } finally {
+      await session.close()
+    }
+  }
+
+  async isNodeInGroup({nodeId, groupId}) {
+    const session = this.neo4jService.getSession()
+    
+    try {
+      const result = await session.run(
+        `
+        MATCH (node:Asset)-[:_MEMBER_OF]->(g:Group)
+        WHERE id(node) = $nodeId AND id(g) = $groupId
+        RETURN count(*) > 0 as isMember
+        `,
+        { 
+          nodeId: this.neo4jService.int(nodeId),
+          groupId: this.neo4jService.int(groupId)
+        }
+      )
+
+      return result.records[0]?.get('isMember') || false
+    } finally {
+      await session.close()
+    }
+  }
+
+  async getNodeGroupSummary({nodeId}) {
+    const session = this.neo4jService.getSession()
+    
+    try {
+      const result = await session.run(
+        `
+        MATCH (node:Asset)
+        WHERE id(node) = $nodeId
+        OPTIONAL MATCH (node)-[:_MEMBER_OF]->(g:Group)
+        WHERE g.isActive = true
+        RETURN 
+          count(g) as groupCount,
+          collect({
+            groupId: toString(id(g)),
+            groupName: g.groupName,
+            groupType: g.groupType
+          }) as groups
+        `,
+        { nodeId: this.neo4jService.int(nodeId) }
+      )
+
+      if (result.records.length === 0) {
+        return {
+          nodeId: nodeId,
+          groupCount: 0,
+          groups: [],
+          hasGroups: false
+        }
+      }
+
+      const record = result.records[0]
+      const groups = record.get('groups').filter(g => g.groupId !== null)
+      
+      return {
+        nodeId: nodeId,
+        groupCount: record.get('groupCount').toNumber(),
+        groups: groups,
+        hasGroups: groups.length > 0,
+        groupNames: groups.map(g => g.groupName),
+        groupTypes: [...new Set(groups.map(g => g.groupType))]
+      }
+    } finally {
+      await session.close()
+    }
+  }
+
   async close() {
     // Neo4j connection is managed by Neo4jService singleton
     // No resources to clean up in GroupService

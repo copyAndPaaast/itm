@@ -95,4 +95,32 @@ export class NodeModel {
   getProperty(key, defaultValue = null) {
     return this.properties[key] ?? defaultValue
   }
+
+  getAssetClassName() {
+    // In the demo, nodes are created with labels like: ['Asset', 'DemoServer', 'ProdWebSystem', ...]
+    // The AssetClass name should be 'DemoServer' (from the AssetClass)
+    // System labels are additional labels beyond Asset and AssetClass
+    // For now, we'll use a heuristic: find the label that looks like an AssetClass name
+    // (typically contains common class patterns or is the second label after 'Asset')
+    
+    const nonAssetLabels = this.labels.filter(label => label !== 'Asset')
+    if (nonAssetLabels.length === 0) return 'Unknown'
+    
+    // Look for common AssetClass patterns first
+    const classPatterns = /^(.*Class|.*Server|.*App|.*Device|.*Component)$/i
+    const classMatch = nonAssetLabels.find(label => classPatterns.test(label))
+    if (classMatch) return classMatch
+    
+    // Fallback to first non-Asset label if no pattern match
+    return nonAssetLabels[0]
+  }
+
+  getSystemLabels() {
+    // Get all labels except 'Asset' and the AssetClass name
+    const assetClassName = this.getAssetClassName()
+    return this.labels.filter(label => 
+      label !== 'Asset' && 
+      label !== assetClassName
+    )
+  }
 }

@@ -287,6 +287,55 @@ export class RelationshipClassService extends RelationshipClassInterface {
     }
   }
 
+  async getAvailableRelationshipClasses() {
+    // Get user-facing RelationshipClasses for UI selection (filters out ITM internal types)
+    const relationshipClasses = await this.getAllRelationshipClasses()
+    return relationshipClasses
+      .filter(rc => !rc.relationshipType.startsWith('_')) // Filter out ITM app internal types
+      .map(rc => ({
+        classId: rc.classId,
+        relationshipClassName: rc.relationshipClassName,
+        relationshipType: rc.relationshipType,
+        description: rc.description,
+        allowedFromTypes: rc.allowedFromTypes,
+        allowedToTypes: rc.allowedToTypes
+      }))
+      .sort((a, b) => a.relationshipClassName.localeCompare(b.relationshipClassName))
+  }
+
+  async getRelationshipClassPropertySchema({relationshipClassId}) {
+    const relationshipClass = await this.getRelationshipClass({classId: relationshipClassId})
+    if (!relationshipClass) {
+      throw new Error(`RelationshipClass with ID '${relationshipClassId}' not found`)
+    }
+
+    return {
+      classId: relationshipClass.classId,
+      relationshipClassName: relationshipClass.relationshipClassName,
+      relationshipType: relationshipClass.relationshipType,
+      description: relationshipClass.description,
+      propertySchema: relationshipClass.propertySchema,
+      requiredProperties: relationshipClass.requiredProperties,
+      optionalProperties: relationshipClass.getOptionalProperties(),
+      allowedFromTypes: relationshipClass.allowedFromTypes,
+      allowedToTypes: relationshipClass.allowedToTypes,
+      // Provide default values for properties
+      defaultProperties: this.getDefaultPropertiesFromSchema(relationshipClass.propertySchema)
+    }
+  }
+
+  getDefaultPropertiesFromSchema(propertySchema) {
+    const defaults = {}
+    for (const [propName, schema] of Object.entries(propertySchema)) {
+      if (schema.default !== undefined) {
+        defaults[propName] = schema.default
+      } else if (schema.values && schema.values.length > 0) {
+        defaults[propName] = schema.values[0] // First allowed value as default
+      }
+    }
+    return defaults
+  }
+
   // Helper method to validate Neo4j relationship type names
   isValidRelationshipTypeName(relationshipType) {
     // Neo4j relationship types should be uppercase with underscores
