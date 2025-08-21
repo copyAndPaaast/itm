@@ -18,9 +18,13 @@ export const GRAPH_VIEWER_EVENTS = {
   NODE_HOVER: 'nodeHover',
   NODE_DOUBLE_CLICK: 'nodeDoubleClick',
   NODE_RIGHT_CLICK: 'nodeRightClick',
+  NODE_CLICK: 'nodeClick',
+  NODE_BORDER_CLICK: 'nodeBorderClick',
   EDGE_SELECT: 'edgeSelect',
   EDGE_DESELECT: 'edgeDeselect',
   EDGE_HOVER: 'edgeHover',
+  EDGE_CLICK: 'edgeClick',
+  EDGE_DOUBLE_CLICK: 'edgeDoubleClick',
   BACKGROUND_CLICK: 'backgroundClick',
   LAYOUT_COMPLETE: 'layoutComplete',
   ZOOM_CHANGE: 'zoomChange',
@@ -272,6 +276,36 @@ export const EVENT_DATA_STRUCTURES = {
    * @property {string} sourceNodeId - Source node ID
    * @property {string} targetNodeId - Target node ID
    * @property {Array} selectedEdges - All currently selected edges
+   */
+  
+  /**
+   * Node click event data (single click on node body)
+   * @typedef {Object} NodeClickEvent
+   * @property {string} nodeId - Clicked node ID
+   * @property {Object} nodeData - Complete node data
+   * @property {Object} position - Click position {x, y}
+   * @property {boolean} ctrlKey - Whether Ctrl key was pressed
+   * @property {boolean} shiftKey - Whether Shift key was pressed
+   */
+  
+  /**
+   * Node border click event data (click on node border/edge)
+   * @typedef {Object} NodeBorderClickEvent
+   * @property {string} nodeId - Node ID whose border was clicked
+   * @property {Object} nodeData - Complete node data
+   * @property {Object} position - Click position {x, y}
+   * @property {string} borderRegion - Which part of border ('top', 'right', 'bottom', 'left')
+   */
+  
+  /**
+   * Edge click event data (single click on edge)
+   * @typedef {Object} EdgeClickEvent
+   * @property {string} edgeId - Clicked edge ID
+   * @property {Object} edgeData - Complete edge data
+   * @property {string} sourceNodeId - Source node ID
+   * @property {string} targetNodeId - Target node ID
+   * @property {Object} position - Click position {x, y}
+   * @property {boolean} ctrlKey - Whether Ctrl key was pressed
    */
   
   /**

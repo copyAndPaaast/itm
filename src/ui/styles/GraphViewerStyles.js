@@ -76,7 +76,7 @@ export const EDGE_STYLES = {
  * Compatible with Material UI theme colors
  */
 export const BASE_CYTOSCAPE_STYLE = [
-  // Default node style
+  // Default node style - no overlay effects
   {
     selector: 'node',
     style: {
@@ -88,7 +88,8 @@ export const BASE_CYTOSCAPE_STYLE = [
       'height': '60px',
       'font-size': '12px',
       'text-outline-width': 1,
-      'text-outline-color': '#000'
+      'text-outline-color': '#000',
+      'overlay-opacity': 0 // Ensure no overlay by default
     }
   },
   // Default edge style
@@ -98,10 +99,16 @@ export const BASE_CYTOSCAPE_STYLE = [
       'width': 2,
       'target-arrow-shape': 'triangle',
       'curve-style': 'bezier',
-      'label': 'data(label)',
       'font-size': '10px',
       'text-rotation': 'autorotate',
       'text-margin-y': -10
+    }
+  },
+  // Edge label style (only for edges with labels)
+  {
+    selector: 'edge[label]',
+    style: {
+      'label': 'data(label)'
     }
   },
   // Selected element highlighting - uses Material UI primary color
@@ -112,15 +119,6 @@ export const BASE_CYTOSCAPE_STYLE = [
       'border-width': 4,
       'line-color': '#FF5722',
       'target-arrow-color': '#FF5722'
-    }
-  },
-  // Hover effects
-  {
-    selector: 'node:active',
-    style: {
-      'overlay-color': '#FF5722',
-      'overlay-padding': 10,
-      'overlay-opacity': 0.25
     }
   }
 ]
@@ -284,6 +282,33 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
       style: customStyles.edges
     })
   }
+  
+  // Add temp element styles for drag-to-connect
+  styles.push({
+    selector: '.temp-node',
+    style: {
+      'opacity': 0,
+      'width': 1,
+      'height': 1
+    }
+  })
+  
+  styles.push({
+    selector: '.temp-edge',
+    style: {
+      'width': 2,
+      'line-color': '#0074cc',
+      'curve-style': 'straight',
+      'target-arrow-shape': 'triangle',
+      'target-arrow-color': '#0074cc',
+      'arrow-scale': 1.2,
+      'opacity': 0.7,
+      'line-style': 'dashed'
+    }
+  })
+  
+  // Note: Hover effects are now handled via direct style manipulation in event handlers
+  // No CSS hover selectors needed since we use instance.on('mouseover') and node.style()
   
   return styles
 }

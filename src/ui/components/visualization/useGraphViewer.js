@@ -61,10 +61,10 @@ export const useGraphViewer = (options = {}) => {
     }
   }, [graphState, graphId, initialNodes, initialEdges, dispatch])
   
-  // Use Redux state or fallback to initial values
+  // Use Redux state or fallback to initial values - ensure all objects are mutable
   const currentState = graphState || {
-    nodes: initialNodes,
-    edges: initialEdges,
+    nodes: [...initialNodes],
+    edges: [...initialEdges],
     selection: { selectedNodes: [], selectedEdges: [], lastSelected: null },
     layout: config.layout || 'dagre',
     zoom: 1,
@@ -121,9 +121,9 @@ export const useGraphViewer = (options = {}) => {
     const startTime = performance.now()
 
     try {
-      // Create mutable copies to avoid read-only property errors
-      const mutableNodes = filteredData.nodes.map(node => ({ ...node }))
-      const mutableEdges = filteredData.edges.map(edge => ({ ...edge }))
+      // Create deep mutable copies to avoid read-only property errors
+      const mutableNodes = filteredData.nodes.map(node => JSON.parse(JSON.stringify(node)))
+      const mutableEdges = filteredData.edges.map(edge => JSON.parse(JSON.stringify(edge)))
       
       const instance = GraphViewerService.initializeCytoscape(
         container,
@@ -205,13 +205,32 @@ export const useGraphViewer = (options = {}) => {
       })
     })
 
-    // Hover events
+    // Hover events with direct style manipulation
     instance.on('mouseover', 'node', (event) => {
       const node = event.target
+      
+      // Apply hover style directly (like old implementation)
+      if (!node.selected()) {
+        node.style('border-color', '#0074cc')
+        node.style('border-width', 10)
+      }
+      
       handleEvent(GRAPH_VIEWER_EVENTS.NODE_HOVER, {
         nodeId: node.id(),
         nodeData: node.data('nodeData')
       })
+    })
+
+    instance.on('mouseout', 'node', (event) => {
+      const node = event.target
+      
+      // Reset to original style (like old implementation)
+      if (!node.selected()) {
+        // Get original border color from node data or use default
+        const originalBorderColor = node.data('originalBorderColor') || '#666666'
+        node.style('border-color', originalBorderColor)
+        node.style('border-width', 2) // Match default border width
+      }
     })
 
     instance.on('mouseover', 'edge', (event) => {
@@ -222,13 +241,182 @@ export const useGraphViewer = (options = {}) => {
       })
     })
 
-    // Double-click events
+    // Single-click events on nodes (simplified - no border detection here)
+    instance.on('tap', 'node', (event) => {
+      const node = event.target
+      const position = event.position || event.cyPosition
+      const originalEvent = event.originalEvent
+      
+      // Regular node body click
+      handleEvent(GRAPH_VIEWER_EVENTS.NODE_CLICK, {
+        nodeId: node.id(),
+        nodeData: node.data('nodeData'),
+        position,
+        ctrlKey: originalEvent ? !!originalEvent.ctrlKey : false,
+        shiftKey: originalEvent ? !!originalEvent.shiftKey : false
+      })
+    })
+
+    // Double-click events on nodes
     instance.on('dbltap', 'node', (event) => {
       const node = event.target
       handleEvent(GRAPH_VIEWER_EVENTS.NODE_DOUBLE_CLICK, {
         nodeId: node.id(),
         nodeData: node.data('nodeData')
       })
+    })
+    
+    // Single-click events on edges
+    instance.on('tap', 'edge', (event) => {
+      const edge = event.target
+      const position = event.position || event.cyPosition
+      const originalEvent = event.originalEvent
+      
+      handleEvent(GRAPH_VIEWER_EVENTS.EDGE_CLICK, {
+        edgeId: edge.id(),
+        edgeData: edge.data('edgeData'),
+        sourceNodeId: edge.source().id(),
+        targetNodeId: edge.target().id(),
+        position,
+        ctrlKey: originalEvent ? !!originalEvent.ctrlKey : false
+      })
+    })
+    
+    // Double-click events on edges
+    instance.on('dbltap', 'edge', (event) => {
+      const edge = event.target
+      const position = event.position || event.cyPosition
+      
+      handleEvent(GRAPH_VIEWER_EVENTS.EDGE_DOUBLE_CLICK, {
+        edgeId: edge.id(),
+        edgeData: edge.data('edgeData'),
+        sourceNodeId: edge.source().id(),
+        targetNodeId: edge.target().id(),
+        position
+      })
+    })
+
+    // Drag-to-connect functionality (from old implementation)
+    let isDragging = false
+    let dragStartNode = null
+    let tempEdge = null
+    
+    instance.on('mousedown', 'node', (event) => {
+      const node = event.target
+      const mousePos = event.position || event.cyPosition
+      const nodePos = node.position()
+      const nodeSize = node.width()
+      
+      // Calculate distance from center to click point
+      const distance = Math.sqrt(
+        Math.pow(mousePos.x - nodePos.x, 2) + Math.pow(mousePos.y - nodePos.y, 2)
+      )
+      const borderThickness = 8
+      
+      
+      // If click is near border, start drag-to-connect
+      if (distance > (nodeSize/2 - borderThickness)) {
+        if (GraphViewerService.checkPermission('create', userPermissions)) {
+          dragStartNode = node
+          isDragging = true
+          node.ungrabify() // Prevent normal dragging
+          event.stopPropagation()
+          event.preventDefault()
+        } else {
+        }
+      } else {
+        // Normal click - allow selection and dragging
+        node.grabify()
+        node.select()
+      }
+    })
+    
+    instance.on('mousemove', (event) => {
+      if (isDragging && dragStartNode) {
+        // Remove existing temp elements
+        instance.elements('.temp-edge').remove()
+        instance.elements('.temp-node').remove()
+        
+        const timestamp = Date.now()
+        const tempNodeId = `temp-target-${timestamp}`
+        const tempEdgeId = `temp-edge-${timestamp}`
+        
+        // Create temporary target node
+        instance.add({
+          group: 'nodes',
+          data: { 
+            id: tempNodeId,
+            label: 'temp-target'
+          },
+          position: { x: event.position.x, y: event.position.y },
+          classes: 'temp-node'
+        })
+        
+        // Create temporary edge
+        tempEdge = instance.add({
+          group: 'edges',
+          data: {
+            id: tempEdgeId,
+            source: dragStartNode.id(),
+            target: tempNodeId
+          },
+          classes: 'temp-edge'
+        })
+      }
+    })
+    
+    instance.on('mouseup', (event) => {
+      if (isDragging && dragStartNode) {
+        // Clean up temp elements
+        instance.elements('.temp-edge').remove()
+        instance.elements('.temp-node').remove()
+        
+        // Re-enable node dragging
+        dragStartNode.grabify()
+        
+        const targetNode = event.target
+        
+        if (targetNode !== instance && targetNode.isNode() && !targetNode.hasClass('temp-node')) {
+          // Connect to existing node (prevent self-loops)
+          if (dragStartNode.id() !== targetNode.id()) {
+            createEdgeConnection(dragStartNode.id(), targetNode.id())
+          }
+        } else {
+          // Check for nodes at drop position
+          const nodeAtPosition = instance.nodes().filter(function(node) {
+            if (node.hasClass('temp-node')) return false
+            const nodePos = node.position()
+            const distance = Math.sqrt(
+              Math.pow(event.position.x - nodePos.x, 2) +
+              Math.pow(event.position.y - nodePos.y, 2)
+            )
+            const isWithinNode = distance < node.width() / 2
+            return isWithinNode
+          })
+          
+          if (nodeAtPosition.length > 0 && nodeAtPosition[0]) {
+            // Connect to node at position
+            createEdgeConnection(dragStartNode.id(), nodeAtPosition[0].id())
+          } else {
+            // Create new node and connect
+            const sourceNodeId = dragStartNode.id() // Capture the ID before async operation
+            createNodeAtPosition(event.position)
+              .then(newNode => {
+                if (newNode) {
+                  createEdgeConnection(sourceNodeId, newNode.nodeId)
+                }
+              })
+              .catch(error => {
+                console.error('Node creation promise rejected:', error)
+              })
+          }
+        }
+      }
+      
+      // Reset drag state
+      isDragging = false
+      dragStartNode = null
+      tempEdge = null
     })
 
     // Background click - handle Ctrl+click for creating nodes
@@ -257,15 +445,16 @@ export const useGraphViewer = (options = {}) => {
 
     // Zoom and pan events - only track user-initiated changes after initialization
     let lastZoom = instance.zoom()
-    let lastPan = instance.pan()
+    let lastPan = { x: Number(instance.pan().x), y: Number(instance.pan().y) }
     let isInitializing = true
     
     // Set a timeout to mark initialization as complete
     setTimeout(() => {
       isInitializing = false
-      // Update baseline values after layout completes
+      // Update baseline values after layout completes - ensure mutable
       lastZoom = instance.zoom()
-      lastPan = instance.pan()
+      const currentPan = instance.pan()
+      lastPan = { x: Number(currentPan.x), y: Number(currentPan.y) }
     }, 1000) // Give enough time for initial layout and fit operations
     
     instance.on('zoom', () => {
@@ -297,14 +486,16 @@ export const useGraphViewer = (options = {}) => {
       
       // Only dispatch if pan changed significantly (more than 10 pixels)
       if (panDistance > 10) {
-        dispatch({ type: GRAPH_ACTIONS.SET_PAN, payload: { graphId, pan: panPosition } })
+        // Ensure pan position is mutable before dispatching to Redux
+        const mutablePanPosition = { x: Number(panPosition.x), y: Number(panPosition.y) }
+        dispatch({ type: GRAPH_ACTIONS.SET_PAN, payload: { graphId, pan: mutablePanPosition } })
         
         handleEvent(GRAPH_VIEWER_EVENTS.PAN_CHANGE, {
-          panPosition,
+          panPosition: mutablePanPosition,
           previousPan: lastPan
         })
         
-        lastPan = panPosition
+        lastPan = mutablePanPosition
       }
     })
   }, [defaultConfig, userPermissions, graphId, currentState.zoom, currentState.pan, dispatch])
@@ -343,6 +534,22 @@ export const useGraphViewer = (options = {}) => {
         }
         dispatch({ type: GRAPH_ACTIONS.SET_SELECTION, payload: { graphId, selection: edgeSelection } })
         if (onSelectionChange) onSelectionChange(edgeSelection)
+        break
+
+      case GRAPH_VIEWER_EVENTS.NODE_CLICK:
+        // Handle node body clicks - can be used for custom interactions
+        break
+        
+      case GRAPH_VIEWER_EVENTS.NODE_BORDER_CLICK:
+        // Handle node border clicks - useful for connection points
+        break
+        
+      case GRAPH_VIEWER_EVENTS.EDGE_CLICK:
+        // Handle edge clicks - can be used for edge editing, properties, etc.
+        break
+        
+      case GRAPH_VIEWER_EVENTS.EDGE_DOUBLE_CLICK:
+        // Handle edge double-clicks - can be used for quick editing
         break
 
       case GRAPH_VIEWER_EVENTS.BACKGROUND_CLICK:
@@ -435,7 +642,7 @@ export const useGraphViewer = (options = {}) => {
 
   const zoomTo = useCallback((zoomLevel) => {
     if (cytoscapeInstance) {
-      cytoscapeInstance.zoom(zoomLevel)
+      cytoscapeInstance.zoom(Number(zoomLevel))
       cytoscapeInstance.center()
     }
   }, [cytoscapeInstance])
@@ -563,6 +770,47 @@ export const useGraphViewer = (options = {}) => {
   }, [userPermissions, cytoscapeInstance, graphId, dispatch, onDataChange, onError])
 
   /**
+   * Create an edge connection between two nodes
+   */
+  const createEdgeConnection = useCallback(async (sourceId, targetId) => {
+    if (!GraphViewerService.checkPermission('create', userPermissions)) {
+      return
+    }
+
+    const edgeId = `rel_${Date.now()}`
+    const newEdgeData = {
+      relationshipId: edgeId,
+      fromId: sourceId,
+      toId: targetId,
+      relationshipType: 'connects_to',
+      properties: {
+        created: new Date().toISOString()
+      }
+    }
+
+    try {
+      // Here you would typically call backend service
+      // const newEdge = await EdgeService.createEdge(newEdgeData)
+      
+      // Add to Redux state
+      dispatch({ type: 'graphViewer/addEdge', payload: { graphId, edge: newEdgeData } })
+      
+      // Add to Cytoscape if initialized
+      if (cytoscapeInstance) {
+        const cytoscapeEdge = GraphViewerService.transformEdgeData(newEdgeData)
+        cytoscapeInstance.add(cytoscapeEdge)
+      }
+
+      if (onDataChange) onDataChange({ type: 'edgeAdded', data: newEdgeData })
+      return newEdgeData
+      
+    } catch (error) {
+      console.error('Failed to create edge:', error)
+      if (onError) onError(error)
+    }
+  }, [userPermissions, cytoscapeInstance, graphId, dispatch, onDataChange, onError])
+
+  /**
    * Create a new node at the specified position
    */
   const createNodeAtPosition = useCallback(async (position) => {
@@ -592,13 +840,20 @@ export const useGraphViewer = (options = {}) => {
         if (cytoscapeInstance) {
           const node = cytoscapeInstance.getElementById(createdNode.nodeId)
           if (node.length > 0) {
-            // Create a mutable position object to avoid read-only errors
-            node.position({ x: position.x, y: position.y })
+            // Create a completely mutable position object to avoid read-only errors
+            const mutablePosition = {
+              x: Number(position.x),
+              y: Number(position.y)
+            }
+            node.position(mutablePosition)
           }
         }
       }, 100)
+      
+      return createdNode // Make sure to return the created node
     } catch (error) {
       console.error('Failed to create node:', error)
+      return null
     }
   }, [userPermissions, addNode, cytoscapeInstance])
 
@@ -607,19 +862,22 @@ export const useGraphViewer = (options = {}) => {
    */
   useEffect(() => {
     if (cytoscapeInstance && isInitialized) {
-      // Store current positions before updating
+      // Store current positions before updating - ensure mutable copies
       const nodePositions = {}
       cytoscapeInstance.nodes().forEach(node => {
-        nodePositions[node.id()] = node.position()
+        const pos = node.position()
+        nodePositions[node.id()] = { x: Number(pos.x), y: Number(pos.y) }
       })
 
       // Remove all elements
       cytoscapeInstance.elements().remove()
       
-      // Add updated elements
+      // Add updated elements - ensure all data is mutable
+      const mutableNodes = filteredData.nodes.map(node => JSON.parse(JSON.stringify(node)))
+      const mutableEdges = filteredData.edges.map(edge => JSON.parse(JSON.stringify(edge)))
       const elements = [
-        ...filteredData.nodes.map(node => GraphViewerService.transformNodeData(node)),
-        ...filteredData.edges.map(edge => GraphViewerService.transformEdgeData(edge))
+        ...mutableNodes.map(node => GraphViewerService.transformNodeData(node)),
+        ...mutableEdges.map(edge => GraphViewerService.transformEdgeData(edge))
       ]
       
       if (elements.length > 0) {
@@ -628,7 +886,9 @@ export const useGraphViewer = (options = {}) => {
         // Restore positions for existing nodes
         cytoscapeInstance.nodes().forEach(node => {
           if (nodePositions[node.id()]) {
-            node.position(nodePositions[node.id()])
+            const pos = nodePositions[node.id()]
+            // Ensure position object is mutable
+            node.position({ x: Number(pos.x), y: Number(pos.y) })
           }
         })
         

@@ -29,27 +29,34 @@ export const GraphViewerService = {
     }
 
     try {
+      // Create deep mutable copies to avoid read-only property errors
+      const mutableNodes = nodes.map(node => JSON.parse(JSON.stringify(node)))
+      const mutableEdges = edges.map(edge => JSON.parse(JSON.stringify(edge)))
+      
       const cytoscapeInstance = cytoscape({
         container: container,
         elements: [
-          ...nodes.map(node => this.transformNodeData(node)),
-          ...edges.map(edge => this.transformEdgeData(edge))
+          ...mutableNodes.map(node => this.transformNodeData(node)),
+          ...mutableEdges.map(edge => this.transformEdgeData(edge))
         ],
         style: buildCytoscapeStyle(config.styling, config.theme),
         layout: this.calculateLayout(nodes, edges, config.layout),
         
         // Interaction settings
-        userZoomingEnabled: config.enableZoom,
-        userPanningEnabled: config.enablePan,
-        boxSelectionEnabled: config.enableSelection,
-        selectionType: config.selectionMode,
+        userZoomingEnabled: !!config.enableZoom,
+        userPanningEnabled: !!config.enablePan,
+        boxSelectionEnabled: !!config.enableSelection,
+        selectionType: config.selectionMode || 'single',
+        
+        // Initial viewport settings - ensure mutable objects
+        zoom: 1,
+        pan: { x: 0, y: 0 },
         
         // Performance settings
         hideEdgesOnViewport: nodes.length > 500,
         hideLabelsOnViewport: nodes.length > 500,
         pixelRatio: 'auto',
-        motionBlur: true,
-        wheelSensitivity: 0.2
+        motionBlur: true
       })
 
       return cytoscapeInstance
@@ -63,18 +70,35 @@ export const GraphViewerService = {
    * Transforms ITM node data into Cytoscape format
    */
   transformNodeData(nodeData) {
+    // Create completely mutable objects to avoid read-only errors
+    const mutableNodeData = JSON.parse(JSON.stringify(nodeData))
+    
+    // Determine border color based on node type for hover restoration
+    const nodeType = this.getNodeType(mutableNodeData)
+    let originalBorderColor = '#666666' // default
+    
+    if (nodeType === 'server') originalBorderColor = '#388E3C'
+    else if (nodeType === 'database') originalBorderColor = '#F57C00'
+    else if (nodeType === 'application') originalBorderColor = '#7B1FA2'
+    else if (nodeType === 'network') originalBorderColor = '#1976D2'
+    
     return {
       data: {
-        id: nodeData.nodeId || nodeData.id,
-        label: nodeData.title || nodeData.name || `Node ${nodeData.nodeId}`,
-        type: this.getNodeType(nodeData),
-        assetClass: nodeData.assetClass || 'unknown',
-        systems: [...(nodeData.systems || [])],
-        groups: [...(nodeData.groups || [])],
-        properties: { ...(nodeData.properties || {}) },
+        id: mutableNodeData.nodeId || mutableNodeData.id,
+        label: mutableNodeData.title || mutableNodeData.name || `Node ${mutableNodeData.nodeId}`,
+        type: this.getNodeType(mutableNodeData),
+        assetClass: mutableNodeData.assetClass || 'unknown',
+        systems: [...(mutableNodeData.systems || [])],
+        groups: [...(mutableNodeData.groups || [])],
+        properties: { ...(mutableNodeData.properties || {}) },
+        // Store original border color for hover effects
+        originalBorderColor: originalBorderColor,
         // Store full node data for access in events (mutable copy)
-        nodeData: { ...nodeData }
-      }
+        nodeData: { ...mutableNodeData }
+      },
+      // Ensure position is mutable if it exists
+      position: mutableNodeData.properties && (mutableNodeData.properties.x !== undefined && mutableNodeData.properties.y !== undefined) ? 
+        { x: Number(mutableNodeData.properties.x), y: Number(mutableNodeData.properties.y) } : undefined
     }
   },
 
@@ -82,16 +106,18 @@ export const GraphViewerService = {
    * Transforms ITM relationship data into Cytoscape edge format  
    */
   transformEdgeData(edgeData) {
+    // Create completely mutable objects to avoid read-only errors
+    const mutableEdgeData = JSON.parse(JSON.stringify(edgeData))
     return {
       data: {
-        id: edgeData.relationshipId || edgeData.id,
-        source: edgeData.fromId || edgeData.source,
-        target: edgeData.toId || edgeData.target,
-        label: edgeData.relationshipType || edgeData.type || '',
-        type: edgeData.relationshipType || 'default',
-        properties: { ...(edgeData.properties || {}) },
+        id: mutableEdgeData.relationshipId || mutableEdgeData.id,
+        source: mutableEdgeData.fromId || mutableEdgeData.source,
+        target: mutableEdgeData.toId || mutableEdgeData.target,
+        label: mutableEdgeData.relationshipType || mutableEdgeData.type || '',
+        type: mutableEdgeData.relationshipType || 'default',
+        properties: { ...(mutableEdgeData.properties || {}) },
         // Store full edge data for access in events (mutable copy)
-        edgeData: { ...edgeData }
+        edgeData: { ...mutableEdgeData }
       }
     }
   },

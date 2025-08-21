@@ -183,6 +183,38 @@ export const GraphViewerDemo = () => {
     
     // Handle specific events for demo
     switch (eventType) {
+      case 'nodeClick':
+        logEvent('Node Body Clicked', { 
+          nodeId: eventData.nodeId, 
+          ctrl: eventData.ctrlKey,
+          shift: eventData.shiftKey 
+        })
+        break
+        
+      case 'nodeBorderClick':
+        logEvent('Node Border Clicked', { 
+          nodeId: eventData.nodeId, 
+          region: eventData.borderRegion,
+          message: `Good for creating connections from ${eventData.borderRegion} side`
+        })
+        break
+        
+      case 'edgeClick':
+        logEvent('Edge Clicked', { 
+          edgeId: eventData.edgeId,
+          from: eventData.sourceNodeId,
+          to: eventData.targetNodeId,
+          ctrl: eventData.ctrlKey
+        })
+        break
+        
+      case 'edgeDoubleClick':
+        logEvent('Edge Double-Clicked', { 
+          edgeId: eventData.edgeId,
+          message: 'Perfect for editing edge properties'
+        })
+        break
+        
       case 'export':
         try {
           const exportedData = exportGraph(eventData.format || 'png')
@@ -262,7 +294,7 @@ export const GraphViewerDemo = () => {
       </Typography>
       
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        💡 <strong>Tips:</strong> Ctrl+Click to create nodes • Drag nodes to reposition • Use Refresh to reapply layout
+        💡 <strong>Tips:</strong> Ctrl+Click to create nodes • Drag from node border to connect nodes • Click center to move nodes • Hover for border highlights
       </Typography>
       
       <Box sx={{ display: 'flex', flex: 1, gap: 2 }}>
