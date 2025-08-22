@@ -46,7 +46,14 @@ const GraphViewer = forwardRef(({
       },
       wheelSensitivity: 0.2,
       maxZoom: 3,
-      minZoom: 0.1
+      minZoom: 0.1,
+      // Enable user interaction
+      userZoomingEnabled: true,
+      userPanningEnabled: true,
+      boxSelectionEnabled: true,
+      // This should be enabled by default, but let's be explicit
+      autoungrabify: false,
+      autolock: false
     })
 
     cyRef.current = cy
@@ -61,6 +68,25 @@ const GraphViewer = forwardRef(({
         cy._hullUpdateTimeout = setTimeout(() => {
           onNodesMove()
         }, 100)
+      }
+    })
+    
+    // Listen to drag events for immediate feedback
+    cy.on('drag', 'node', (event) => {
+      const node = event.target
+      if (!node.hasClass('group-hull') && !node.data('isCompound')) {
+        clearTimeout(cy._hullUpdateTimeout)
+        cy._hullUpdateTimeout = setTimeout(() => {
+          onNodesMove()
+        }, 50) // Faster updates during drag
+      }
+    })
+    
+    // Listen to free (end of drag) events for final update
+    cy.on('free', 'node', (event) => {
+      const node = event.target
+      if (!node.hasClass('group-hull') && !node.data('isCompound')) {
+        onNodesMove() // Immediate final update
       }
     })
     

@@ -290,6 +290,10 @@ export class GraphViewerMapper {
       'height': maxY - minY
     })
     
+    // Make hull elements non-interactive
+    addedElement.ungrabify()
+    addedElement.unselectable()
+    
     console.log(`Created hull for group: ${groupName} with ${nodes.length} members`)
   }
 
