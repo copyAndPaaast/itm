@@ -32,6 +32,15 @@ const GraphViewer = forwardRef(({
   onCytoscapeReady = () => {},
   onNodesMove = () => {},
   userPermissions = 'viewer',
+  
+  // Group and system collapse props
+  availableGroups = [],
+  availableSystems = [],
+  groupVisibility = {},
+  systemCollapsed = {},
+  onGroupToggle = () => {},
+  onSystemToggle = () => {},
+  
   ...props
 }, ref) => {
   const containerRef = useRef(null)
@@ -772,6 +781,12 @@ const GraphViewer = forwardRef(({
         showTitle={true}
         showSearch={true}
         showMetrics={true}
+        availableGroups={availableGroups}
+        availableSystems={availableSystems}
+        groupVisibility={groupVisibility}
+        systemCollapsed={systemCollapsed}
+        onGroupToggle={onGroupToggle}
+        onSystemToggle={onSystemToggle}
       />
 
       {/* Graph Container */}

@@ -266,8 +266,16 @@ function GraphViewerDemo() {
         ...prev,
         [systemName]: collapsed
       }))
+      
+      // Force hull updates after collapse/expand
+      setTimeout(() => {
+        if (mapperRef.current) {
+          mapperRef.current.updateHulls(cyRef, groupVisibility)
+          console.log('🔄 Forced hull update after system toggle')
+        }
+      }, 150) // Slightly longer delay to ensure collapse/expand animation completes
     }
-  }, [cyRef])
+  }, [cyRef, groupVisibility])
 
   // Handle global system toggle
   const handleGlobalSystemToggle = useCallback((collapsed) => {
@@ -336,6 +344,12 @@ function GraphViewerDemo() {
             onCytoscapeReady={handleCytoscapeReady}
             onNodesMove={handleNodesMove}
             userPermissions="editor"
+            availableGroups={availableGroups}
+            availableSystems={availableSystems}
+            groupVisibility={groupVisibility}
+            systemCollapsed={systemCollapsed}
+            onGroupToggle={handleGroupToggle}
+            onSystemToggle={handleSystemToggle}
           />
         </Box>
 

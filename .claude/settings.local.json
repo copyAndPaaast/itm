@@ -16,7 +16,8 @@
       "Bash(npm run dev:ui:*)",
       "Bash(VITE_MODE=ui npm run dev)",
       "Bash(curl:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

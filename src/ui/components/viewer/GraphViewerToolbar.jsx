@@ -18,7 +18,10 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Switch,
+  FormControlLabel,
+  Divider
 } from '@mui/material'
 import {
   ZoomIn,
@@ -31,7 +34,13 @@ import {
   Close,
   Hub,
   ScatterPlot,
-  RadioButtonUnchecked
+  RadioButtonUnchecked,
+  UnfoldLess,
+  UnfoldMore,
+  Folder,
+  FolderOpen,
+  ViewModule,
+  ViewComfy
 } from '@mui/icons-material'
 
 /**
@@ -55,7 +64,15 @@ export const GraphViewerToolbar = ({
   showTitle = true,
   showSearch = true,
   showMetrics = true,
-  title = null
+  title = null,
+  
+  // Group and system collapse data
+  availableGroups = [],
+  availableSystems = [],
+  groupVisibility = {},
+  systemCollapsed = {},
+  onGroupToggle = () => {},
+  onSystemToggle = () => {}
 }) => {
   // Search state
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
@@ -64,6 +81,9 @@ export const GraphViewerToolbar = ({
   
   // Layout menu state
   const [layoutMenuAnchor, setLayoutMenuAnchor] = useState(null)
+  
+  // Collapse menu state
+  const [collapseMenuAnchor, setCollapseMenuAnchor] = useState(null)
 
   // Sync external search value
   useEffect(() => {
@@ -111,6 +131,56 @@ export const GraphViewerToolbar = ({
   const handleLayoutChange = (layoutType) => {
     onEvent('layout', { action: 'change', layoutType })
     handleLayoutMenuClose()
+  }
+
+  /**
+   * Collapse menu functionality
+   */
+  const handleCollapseMenuOpen = (event) => {
+    setCollapseMenuAnchor(event.currentTarget)
+  }
+
+  const handleCollapseMenuClose = () => {
+    setCollapseMenuAnchor(null)
+  }
+
+  const handleGroupToggle = (groupName, visible) => {
+    onGroupToggle(groupName, visible)
+  }
+
+  const handleSystemToggle = (systemName, collapsed) => {
+    onSystemToggle(systemName, collapsed)
+  }
+
+  const handleExpandAll = () => {
+    // Expand all systems
+    availableSystems.forEach(system => {
+      if (systemCollapsed[system]) {
+        handleSystemToggle(system, false)
+      }
+    })
+    
+    // Show all groups
+    availableGroups.forEach(group => {
+      if (!groupVisibility[group]) {
+        handleGroupToggle(group, true)
+      }
+    })
+    
+    onEvent('collapse', { action: 'expandAll' })
+    handleCollapseMenuClose()
+  }
+
+  const handleCollapseAll = () => {
+    // Collapse all systems
+    availableSystems.forEach(system => {
+      if (!systemCollapsed[system]) {
+        handleSystemToggle(system, true)
+      }
+    })
+    
+    onEvent('collapse', { action: 'collapseAll' })
+    handleCollapseMenuClose()
   }
 
   /**
@@ -305,6 +375,16 @@ export const GraphViewerToolbar = ({
           <AccountTree />
         </IconButton>
 
+        {/* Collapse Controls */}
+        <IconButton 
+          size="small" 
+          onClick={handleCollapseMenuOpen}
+          title="Collapse/Expand Controls"
+          disabled={loading}
+        >
+          <ViewModule />
+        </IconButton>
+
         {/* Action Controls */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <IconButton 
@@ -373,6 +453,143 @@ export const GraphViewerToolbar = ({
             secondary="Circular arrangement"
           />
         </MenuItem>
+      </Menu>
+
+      {/* Collapse Controls Menu */}
+      <Menu
+        anchorEl={collapseMenuAnchor}
+        open={Boolean(collapseMenuAnchor)}
+        onClose={handleCollapseMenuClose}
+        PaperProps={{
+          elevation: 3,
+          sx: { mt: 1, minWidth: 280 }
+        }}
+      >
+        {/* Quick Actions Header */}
+        <MenuItem disabled>
+          <ListItemText 
+            primary="Quick Actions"
+            secondary="Bulk operations for all elements"
+          />
+        </MenuItem>
+        
+        {/* Quick Action Buttons */}
+        <MenuItem onClick={handleExpandAll}>
+          <ListItemIcon>
+            <UnfoldMore color="success" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Expand All"
+            secondary={`Show all ${availableSystems.length} systems & ${availableGroups.length} groups`}
+          />
+        </MenuItem>
+        <MenuItem onClick={handleCollapseAll}>
+          <ListItemIcon>
+            <UnfoldLess color="warning" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Collapse All Systems"
+            secondary={`Collapse ${availableSystems.length} system compounds`}
+          />
+        </MenuItem>
+        
+        {/* Divider */}
+        {(availableSystems.length > 0 || availableGroups.length > 0) && <Divider />}
+        
+        {/* Systems Section */}
+        {availableSystems.length > 0 && (
+          <>
+            <MenuItem disabled>
+              <ListItemIcon>
+                <ViewComfy />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Systems"
+                secondary={`${availableSystems.length} available`}
+              />
+            </MenuItem>
+            {availableSystems.map(system => (
+              <MenuItem 
+                key={system}
+                sx={{ pl: 2, py: 1 }}
+                disableRipple
+              >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={!systemCollapsed[system]}
+                      onChange={(e) => handleSystemToggle(system, !e.target.checked)}
+                      size="small"
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2">{system}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {systemCollapsed[system] ? 'Collapsed' : 'Expanded'}
+                      </Typography>
+                    </Box>
+                  }
+                  sx={{ width: '100%', ml: 0, mr: 0 }}
+                />
+              </MenuItem>
+            ))}
+          </>
+        )}
+        
+        {/* Groups Section */}
+        {availableGroups.length > 0 && (
+          <>
+            {availableSystems.length > 0 && <Divider />}
+            <MenuItem disabled>
+              <ListItemIcon>
+                <ViewModule />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Groups"
+                secondary={`${availableGroups.length} available`}
+              />
+            </MenuItem>
+            {availableGroups.map(group => (
+              <MenuItem 
+                key={group}
+                sx={{ pl: 2, py: 1 }}
+                disableRipple
+              >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={groupVisibility[group] || false}
+                      onChange={(e) => handleGroupToggle(group, e.target.checked)}
+                      size="small"
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2">{group}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {groupVisibility[group] ? 'Visible' : 'Hidden'}
+                      </Typography>
+                    </Box>
+                  }
+                  sx={{ width: '100%', ml: 0, mr: 0 }}
+                />
+              </MenuItem>
+            ))}
+          </>
+        )}
+        
+        {/* Empty state */}
+        {availableSystems.length === 0 && availableGroups.length === 0 && (
+          <MenuItem disabled>
+            <ListItemText 
+              primary="No collapse options"
+              secondary="No systems or groups available"
+            />
+          </MenuItem>
+        )}
       </Menu>
     </Paper>
   )
