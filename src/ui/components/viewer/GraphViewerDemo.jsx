@@ -116,13 +116,13 @@ function GraphViewerDemo() {
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h5" gutterBottom>
-          GraphViewer Demo - Step 1 Foundation
+          GraphViewer Demo - Step 2 V1 Styling
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip label="✅ Clean Architecture" color="success" size="small" />
           <Chip label="✅ Interface Definitions" color="success" size="small" />
           <Chip label="✅ Data Mapper" color="success" size="small" />
-          <Chip label="⏳ Cytoscape Integration" color="default" size="small" />
+          <Chip label="✅ V1 Styling System" color="success" size="small" />
         </Box>
       </Box>
 

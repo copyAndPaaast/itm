@@ -1,12 +1,18 @@
 /**
  * GraphViewer - Pure React View Component
  * 
- * Clean component focused only on rendering
- * Placeholder for Step 4 implementation
+ * Clean component focused only on rendering with V1 styling system
  */
 
 import React, { useRef, useEffect, forwardRef } from 'react'
 import { Box, Paper } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import cytoscape from 'cytoscape'
+import dagre from 'cytoscape-dagre'
+import { buildCytoscapeStyle } from '../../styles/GraphViewerStyles.js'
+
+// Register Cytoscape extensions
+cytoscape.use(dagre)
 
 /**
  * Pure GraphViewer component with clean architecture
@@ -19,15 +25,62 @@ const GraphViewer = forwardRef(({
 }, ref) => {
   const containerRef = useRef(null)
   const cyRef = useRef(null)
+  const theme = useTheme()
 
+  // Initialize Cytoscape
   useEffect(() => {
-    console.log('GraphViewer: Pure view component - Cytoscape integration will be implemented in Step 4')
+    if (!containerRef.current || cyRef.current) return
+
+    console.log('GraphViewer: Initializing Cytoscape with V1 styling system')
     
-    // Placeholder for Step 4:
-    // - Initialize Cytoscape with containerRef
-    // - Apply V1 styling system integration
-    // - Setup basic event listeners
-    // - Connect to GraphViewerService
+    const cy = cytoscape({
+      container: containerRef.current,
+      style: buildCytoscapeStyle({}, theme),
+      layout: {
+        name: 'dagre',
+        nodeSep: 100,
+        edgeSep: 50,
+        rankSep: 150
+      },
+      wheelSensitivity: 0.2,
+      maxZoom: 3,
+      minZoom: 0.1
+    })
+
+    cyRef.current = cy
+    console.log('GraphViewer: Cytoscape initialized successfully')
+
+    return () => {
+      if (cyRef.current) {
+        cyRef.current.destroy()
+        cyRef.current = null
+      }
+    }
+  }, [theme])
+
+  // Update elements when data changes
+  useEffect(() => {
+    if (!cyRef.current) return
+    
+    console.log(`GraphViewer: Updating ${elements.length} elements`)
+    
+    cyRef.current.batch(() => {
+      cyRef.current.elements().remove()
+      cyRef.current.add(elements)
+    })
+    
+    // Apply layout
+    cyRef.current.layout({ 
+      name: 'dagre',
+      nodeSep: 100,
+      edgeSep: 50,
+      rankSep: 150
+    }).run()
+    
+    // Fit to viewport
+    setTimeout(() => {
+      cyRef.current.fit(null, 50)
+    }, 100)
     
   }, [elements])
 
@@ -51,23 +104,7 @@ const GraphViewer = forwardRef(({
           height: '100%',
           position: 'relative'
         }}
-      >
-        {/* Cytoscape container will be initialized here in Step 4 */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            color: 'text.secondary'
-          }}
-        >
-          Step 1: Foundation Created<br/>
-          Elements: {elements.length}<br/>
-          Cytoscape integration: Step 4
-        </Box>
-      </Box>
+      />
     </Paper>
   )
 })
