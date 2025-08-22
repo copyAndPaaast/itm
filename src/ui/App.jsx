@@ -10,7 +10,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { Box, AppBar, Toolbar, Typography, Container } from '@mui/material'
 
 import store from './store/index.js'
-import GraphViewerDemo from './components/visualization-v2/GraphViewerV2Demo.jsx'
+import GraphViewerDemo from './components/viewer/GraphViewerDemo.jsx'
 
 /**
  * ITM application theme configuration
