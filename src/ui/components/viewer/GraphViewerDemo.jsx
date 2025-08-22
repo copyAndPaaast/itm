@@ -187,7 +187,7 @@ function GraphViewerDemo() {
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h5" gutterBottom>
-          GraphViewer Demo - Step 3 Hull Grouping
+          GraphViewer Demo - Step 4 Interactive Features
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip label="✅ Clean Architecture" color="success" size="small" />
@@ -195,6 +195,9 @@ function GraphViewerDemo() {
           <Chip label="✅ Data Mapper" color="success" size="small" />
           <Chip label="✅ V1 Styling System" color="success" size="small" />
           <Chip label="✅ Hull Grouping" color="success" size="small" />
+          <Chip label="✅ Hover Effects" color="success" size="small" />
+          <Chip label="✅ Drag-to-Connect" color="success" size="small" />
+          <Chip label="✅ Event System" color="success" size="small" />
         </Box>
       </Box>
 
@@ -207,6 +210,7 @@ function GraphViewerDemo() {
             onEvent={handleViewerEvent}
             onCytoscapeReady={handleCytoscapeReady}
             onNodesMove={handleNodesMove}
+            userPermissions="editor"
           />
         </Box>
 
@@ -264,6 +268,27 @@ function GraphViewerDemo() {
             </Stack>
           </Paper>
 
+          {/* Interactive Features Guide */}
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Interactive Features
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2 }}>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                <strong>Hover:</strong> Move mouse over nodes for blue border effect
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                <strong>Drag-to-Connect:</strong> Click near node border (8px) and drag to connect
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                <strong>Node Creation:</strong> Ctrl+Click on empty space to create nodes
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                <strong>Hull Following:</strong> Groups follow nodes when dragged
+              </Typography>
+            </Box>
+          </Paper>
+
           {/* Event Monitor */}
           <Paper sx={{ p: 2, height: '100%', overflow: 'auto' }}>
             <Typography variant="h6" gutterBottom>
@@ -275,7 +300,7 @@ function GraphViewerDemo() {
             
             {eventLog.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                Events will appear here...
+                Interact with the graph to see events...
               </Typography>
             ) : (
               eventLog.map((entry, index) => (
@@ -287,7 +312,7 @@ function GraphViewerDemo() {
                     {entry.eventType}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {JSON.stringify(entry.payload, null, 1).substring(0, 100)}...
+                    {JSON.stringify(entry.payload, null, 1).substring(0, 80)}...
                   </Typography>
                 </Box>
               ))

@@ -140,6 +140,34 @@ export const BASE_CYTOSCAPE_STYLE = [
       'border-color': 'data(hullColor)',
       'color': 'data(hullColor)'
     }
+  },
+  // Temporary drag-to-connect elements
+  {
+    selector: 'node.temp-node',
+    style: {
+      'background-color': '#ff9800',
+      'background-opacity': 0.7,
+      'border-color': '#ff5722',
+      'border-width': 2,
+      'border-style': 'dashed',
+      'width': 20,
+      'height': 20,
+      'shape': 'circle',
+      'z-index': 999
+    }
+  },
+  {
+    selector: 'edge.temp-edge',
+    style: {
+      'line-color': '#ff9800',
+      'line-style': 'dashed',
+      'line-opacity': 0.8,
+      'width': 3,
+      'target-arrow-color': '#ff9800',
+      'target-arrow-shape': 'triangle',
+      'curve-style': 'straight',
+      'z-index': 999
+    }
   }
 ]
 
