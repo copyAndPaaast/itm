@@ -9,15 +9,16 @@
  */
 export const NodeDataInterface = {
   // Core identification
-  nodeId: 'string|number',    // Unique identifier  
+  nodeId: 'number',           // Neo4j internal ID (numeric) - can be null for new nodes
+  tempUID: 'string',          // Frontend temporary ID for new nodes  
   title: 'string',            // Display name
   
   // Classification (for automatic styling)
   assetClass: 'string',       // WebServer, DatabaseServer, etc.
   
-  // Membership
-  systems: 'Array<string>',   // System compound membership
-  groups: 'Array<string>',    // Hull group membership
+  // Membership (Neo4j IDs or names)
+  systems: 'Array<string>',   // System names for compound membership  
+  groups: 'Array<string>',    // Group names for hull membership
   
   // Custom styling (overrides assetClass defaults)
   color: 'string',           // Background color
@@ -34,9 +35,9 @@ export const NodeDataInterface = {
  */
 export const EdgeDataInterface = {
   // Core identification
-  id: 'string',              // Unique identifier
-  source: 'string|number',   // Source node ID
-  target: 'string|number',   // Target node ID
+  id: 'string',              // Unique identifier (edge ID)
+  source: 'number',          // Source node Neo4j ID
+  target: 'number',          // Target node Neo4j ID
   
   // Classification
   relationshipType: 'string', // connects_to, depends_on, etc.
