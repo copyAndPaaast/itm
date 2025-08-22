@@ -95,6 +95,8 @@ const GraphViewer = forwardRef(({
 
     return () => {
       if (cyRef.current) {
+        // Clear any pending timeouts
+        clearTimeout(cyRef.current._hullUpdateTimeout)
         cyRef.current.destroy()
         cyRef.current = null
       }
@@ -122,7 +124,9 @@ const GraphViewer = forwardRef(({
     
     // Fit to viewport
     setTimeout(() => {
-      cyRef.current.fit(null, 50)
+      if (cyRef.current) {
+        cyRef.current.fit(null, 50)
+      }
     }, 100)
     
   }, [elements])

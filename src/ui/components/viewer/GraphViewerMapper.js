@@ -224,19 +224,26 @@ export class GraphViewerMapper {
    * Create a hull element for a group
    */
   createHullElement(cy, groupName, nodes) {
-    // Calculate bounding box of all nodes in group
-    const positions = nodes.map(node => node.position())
+    // Calculate bounding box using actual node boundaries, not just center positions
     const padding = 60
     const minHullSize = 120 // Minimum hull size for single nodes
     
     let minX = Infinity, maxX = -Infinity
     let minY = Infinity, maxY = -Infinity
     
-    positions.forEach(pos => {
-      minX = Math.min(minX, pos.x)
-      maxX = Math.max(maxX, pos.x)
-      minY = Math.min(minY, pos.y)
-      maxY = Math.max(maxY, pos.y)
+    // Use actual node boundaries instead of center positions
+    nodes.forEach(node => {
+      const bbox = node.boundingBox()
+      // bbox gives us the actual rendered boundaries including node size
+      const nodeLeft = bbox.x1
+      const nodeRight = bbox.x2  
+      const nodeTop = bbox.y1
+      const nodeBottom = bbox.y2
+      
+      minX = Math.min(minX, nodeLeft)
+      maxX = Math.max(maxX, nodeRight)
+      minY = Math.min(minY, nodeTop)
+      maxY = Math.max(maxY, nodeBottom)
     })
     
     // Add padding
@@ -292,7 +299,7 @@ export class GraphViewerMapper {
     
     // Make hull elements non-interactive
     addedElement.ungrabify()
-    addedElement.unselectable()
+    addedElement.unselectify()
     
     console.log(`Created hull for group: ${groupName} with ${nodes.length} members`)
   }
