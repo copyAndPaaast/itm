@@ -14,7 +14,9 @@
       "Bash(rmdir:*)",
       "Bash(rm:*)",
       "Bash(npm run dev:ui:*)",
-      "Bash(VITE_MODE=ui npm run dev)"
+      "Bash(VITE_MODE=ui npm run dev)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

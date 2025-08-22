@@ -13,15 +13,14 @@
 ## Cytoscape.js Plugin Ecosystem
 **IMPORTANT**: Before implementing custom graph functionality, always check the official Cytoscape.js plugin repository: 
 - **Repository**: https://github.com/orgs/cytoscape/repositories?type=all
-- **Available plugins**: edgehandles, compound-drag-and-drop, popper, autopan-on-drag, etc.
+- **Available plugins**: edgehandles, compound-drag-and-drop, autopan-on-drag, etc.
 - **Principle**: Use official plugins instead of custom implementations whenever possible
 - **Benefits**: Better performance, maintenance, testing, and community support
 
 **Current plugins in use:**
 - `cytoscape-dagre`: Hierarchical layout algorithm
-- `cytoscape-edgehandles`: Professional drag-to-connect edge creation
-- `cytoscape-compound-drag-and-drop`: Interactive node grouping and hierarchy management  
-- `cytoscape-popper`: Tooltip and popup positioning
+- `cytoscape-expand-collapse`: Professional compound node collapse/expand with visual cues
+- `cytoscape-compound-drag-and-drop`: Interactive node grouping and hierarchy management
 
 ## ITM Context
 **IT Asset Management** - Graph nodes represent servers, applications, databases, network devices, users, locations with typed relationships carrying properties.
@@ -31,6 +30,48 @@ Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+---
+
+## 🎯 **NEW: Collapsible System Compounds** - *August 22, 2025*
+**Advanced ITAM visualization with sophisticated system management**
+
+### **Screenshot**: `screenshots/collapsible_systems_demo_2025-08-22T19-16-37-485Z.png`
+*Comprehensive demo showing 11 nodes across 3 collapsible systems with multi-system assets*
+
+### **Key Features Implemented:**
+- **✅ Visual Collapse Cues**: Top-right corner buttons (16px) on system compounds with professional Material UI styling
+- **✅ Smart Collapse Behavior**: Animated transitions (500ms) with dagre re-layout and hull auto-updates
+- **✅ Comprehensive UI Controls**: Global "Expand All Systems" toggle + individual system controls with real-time status
+- **✅ Professional Styling**: Collapsed systems appear as compact blue proxy nodes (120x80px) with double borders
+- **✅ Multi-System Asset Support**: Advanced nodes appearing in multiple systems with sophisticated edge routing
+
+### **ITAM Use Cases:**
+- **Large Infrastructure Overview**: Collapse entire datacenter systems for executive dashboards
+- **Drill-Down Navigation**: Expand specific systems when detailed analysis needed
+- **Presentation Mode**: Clean high-level view for stakeholder meetings
+- **Performance Optimization**: Better rendering with hundreds of nodes across many systems
+
+### **Technical Implementation:**
+- **Plugin**: `cytoscape-expand-collapse ^4.1.1` with custom configuration
+- **Selector**: `expandCollapseCueSelector: 'node[compoundType = "system"]'` (only system compounds show cues)
+- **Layout Integration**: Automatic dagre re-layout after expand/collapse with hull refresh
+- **State Management**: React state synchronization with Cytoscape operations
+- **Event Handling**: Before/after collapse hooks with proper cleanup and validation
+
+### **How to Use:**
+1. **Visual Cues**: Click collapse/expand buttons (top-right corner of system compounds)
+2. **UI Controls**: Use "System Collapse Controls" panel for programmatic toggle
+3. **Global Operations**: "Expand All Systems" toggle for bulk operations
+4. **Status Indicators**: Real-time "Expanded/Collapsed" status with color coding
+
+### **Demo Features Visible in Screenshot:**
+- **3 Systems**: ViewerArchitecture, ViewerArchitecture1, DataFlow (all expandable)
+- **Multi-System Assets**: Data Mapper appears in multiple systems with dashed borders
+- **Light Red Connections**: Dashed edges linking multi-system asset instances
+- **Group Hulls**: 5 colored group boundaries (Core Components, Backend Services, Data Access, UI Layer)
+- **Professional UI**: Material UI controls with real-time state indicators
+- **Complete Architecture**: 11 nodes demonstrating sophisticated ITAM relationships
 
 ## Organizational Rules
 

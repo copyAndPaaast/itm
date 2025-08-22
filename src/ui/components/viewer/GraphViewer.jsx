@@ -9,10 +9,12 @@ import { Box, Paper } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import cytoscape from 'cytoscape'
 import dagre from 'cytoscape-dagre'
+import expandCollapse from 'cytoscape-expand-collapse'
 import { buildCytoscapeStyle } from '../../styles/GraphViewerStyles.js'
 
 // Register Cytoscape extensions
 cytoscape.use(dagre)
+cytoscape.use(expandCollapse)
 
 /**
  * Pure GraphViewer component with clean architecture
@@ -541,12 +543,86 @@ const GraphViewer = forwardRef(({
       rankSep: 150
     }).run()
     
-    // Fit to viewport
+    // Fit to viewport and setup expand-collapse after elements are loaded
     setTimeout(() => {
       if (cyRef.current) {
         cyRef.current.fit(null, 50)
+        
+        // Setup expand-collapse for compound nodes after elements are loaded
+        try {
+          const expandCollapseAPI = cyRef.current.expandCollapse({
+            layoutBy: {
+              name: 'dagre',
+              nodeSep: 100,
+              edgeSep: 50,
+              rankSep: 150,
+              animate: true,
+              animationDuration: 500,
+              fit: true,
+              padding: 30
+            },
+            fisheye: false,
+            animate: true,
+            ready: function () {
+              const systemNodes = cyRef.current.nodes('[compoundType = "system"]')
+              console.log('🔧 Expand-collapse extension ready with', systemNodes.length, 'system compounds')
+              
+              // Debug: Log system node details
+              systemNodes.forEach(node => {
+                console.log('System compound:', {
+                  id: node.id(),
+                  compoundType: node.data('compoundType'),
+                  systemName: node.data('systemName'),
+                  isCompound: node.data('isCompound'),
+                  children: node.children().length
+                })
+              })
+              
+              // Debug: Check if cues are enabled and visible
+              console.log('🎯 Checking expand-collapse state...')
+              const api = cyRef.current.expandCollapse('get')
+              console.log('API available:', !!api)
+            },
+            undoable: false,
+            cueEnabled: true,
+            expandCollapseCuePosition: 'top-right',
+            expandCollapseCueSize: 16,
+            expandCollapseCueLineSize: 10,
+            expandCueImage: undefined, // Use default expand icon
+            collapseCueImage: undefined, // Use default collapse icon
+            // Only show expand/collapse cues on system compounds
+            expandCollapseCueSelector: 'node[compoundType = "system"]',
+            // Event handlers
+            beforeCollapse: function(node) {
+              console.log('🔽 Collapsing system:', node.data('systemName'))
+              return true // Allow collapse
+            },
+            afterCollapse: function(node) {
+              console.log('✅ System collapsed:', node.data('systemName'))
+              // Trigger hull updates after collapse
+              setTimeout(() => onNodesMoveRef.current(), 100)
+            },
+            beforeExpand: function(node) {
+              console.log('🔼 Expanding system:', node.data('systemName'))
+              return true // Allow expand
+            },
+            afterExpand: function(node) {
+              console.log('✅ System expanded:', node.data('systemName'))
+              // Trigger hull updates after expand
+              setTimeout(() => onNodesMoveRef.current(), 100)
+            }
+          })
+          
+          // Store expand-collapse API reference for external access
+          cyRef.current._expandCollapseAPI = expandCollapseAPI
+          
+          console.log('🎯 Expand-collapse setup complete for system compounds')
+        } catch (error) {
+          console.error('❌ Error setting up expand-collapse:', error)
+        }
+        
       }
-    }, 100)
+    }, 200) // Increased timeout to ensure layout completion
     
   }, [elements])
 

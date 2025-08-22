@@ -12,226 +12,25 @@ import { GraphViewerMapper } from './GraphViewerMapper.js'
 import { ViewerEvents } from './GraphViewerInterface.js'
 
 /**
- * Comprehensive demo data - Multi-system asset testing scenarios
+ * Simple demo data - Single system with one child node for debugging expand-collapse cues
  */
 const createDemoData = () => {
-  // Enhanced test data with 18 different membership scenarios
+  // Minimal test data to debug expand-collapse visual cues
   const nodes = [
-    // ViewerArchitecture System Nodes
     {
       nodeId: 1001,
-      title: 'GraphViewer Interface',
+      title: 'Test Node',
       assetClass: 'Application',
-      systems: ['ViewerArchitecture'],
-      groups: ['Core Components'],
+      systems: ['TestSystem'],
+      groups: [],
       properties: { 
-        status: 'completed',
-        description: 'Interface definitions and contracts'
-      }
-    },
-    {
-      nodeId: 1004,
-      title: 'React Component',
-      assetClass: 'Application',
-      systems: ['ViewerArchitecture'],
-      groups: ['Core Components'],
-      properties: {
-        status: 'in_progress',
-        description: 'Pure view component with Cytoscape'
-      }
-    },
-    {
-      nodeId: 1005,
-      title: 'Styling Engine',
-      assetClass: 'WebServer',
-      systems: ['ViewerArchitecture'],
-      groups: ['UI Layer'],
-      properties: {
-        status: 'completed',
-        description: 'Material UI themed graph styles'
-      }
-    },
-
-    // ViewerArchitecture1 System Nodes  
-    {
-      nodeId: 1003,
-      title: 'Service Layer',
-      assetClass: 'DatabaseServer',
-      systems: ['ViewerArchitecture1'], 
-      groups: ['Backend Services'],
-      properties: {
-        status: 'in_progress',
-        description: 'Interactive features and event handling'
-      }
-    },
-    {
-      nodeId: 1006,
-      title: 'Event Processor',
-      assetClass: 'Application',
-      systems: ['ViewerArchitecture1'],
-      groups: ['Backend Services'],
-      properties: {
-        status: 'completed',
-        description: 'Mouse and keyboard event handling'
-      }
-    },
-
-    // DataFlow System Nodes
-    {
-      nodeId: 1007,
-      title: 'Neo4j Connector',
-      assetClass: 'DatabaseServer',
-      systems: ['DataFlow'],
-      groups: ['Data Access'],
-      properties: {
-        status: 'completed',
-        description: 'Graph database connectivity'
-      }
-    },
-    {
-      nodeId: 1008,
-      title: 'Query Builder',
-      assetClass: 'Application',
-      systems: ['DataFlow'],
-      groups: ['Data Access'],
-      properties: {
-        status: 'in_progress',
-        description: 'Cypher query construction'
-      }
-    },
-
-    // Multi-System Assets (Cross-System Shared Components)
-    {
-      nodeId: 1002, 
-      title: 'Data Mapper',
-      assetClass: 'WebServer',
-      systems: ['ViewerArchitecture', 'ViewerArchitecture1'],
-      groups: ['Core Components'],
-      properties: {
-        status: 'completed', 
-        description: 'Business data to Cytoscape transformation'
-      }
-    },
-    {
-      nodeId: 1009,
-      title: 'State Manager',
-      assetClass: 'Application',
-      systems: ['ViewerArchitecture', 'DataFlow'],
-      groups: ['Core Components', 'Data Access'],
-      properties: {
-        status: 'in_progress',
-        description: 'Redux store for graph state'
-      }
-    },
-    {
-      nodeId: 1010,
-      title: 'Authentication Hub',
-      assetClass: 'WebServer',
-      systems: ['ViewerArchitecture1', 'DataFlow'],
-      groups: ['Backend Services'],
-      properties: {
-        status: 'completed',
-        description: 'User permissions and access control'
-      }
-    },
-
-    // Triple-System Asset (Ultimate Multi-System Test)
-    {
-      nodeId: 1011,
-      title: 'Configuration Engine',
-      assetClass: 'Application',
-      systems: ['ViewerArchitecture', 'ViewerArchitecture1', 'DataFlow'],
-      groups: ['Core Components', 'Backend Services', 'Data Access'],
-      properties: {
-        status: 'completed',
-        description: 'Global system configuration management'
+        status: 'test',
+        description: 'Simple node for testing expand-collapse cues'
       }
     }
   ]
 
-  const edges = [
-    // Intra-system relationships (ViewerArchitecture)
-    {
-      id: 'edge_1',
-      source: 1001,
-      target: 1002,
-      relationshipType: 'defines_contract_for'
-    },
-    {
-      id: 'edge_2', 
-      source: 1002,
-      target: 1004,
-      relationshipType: 'transforms_data_for'
-    },
-    {
-      id: 'edge_5',
-      source: 1005,
-      target: 1004,
-      relationshipType: 'styles'
-    },
-
-    // Intra-system relationships (ViewerArchitecture1)
-    {
-      id: 'edge_3',
-      source: 1003,
-      target: 1004,
-      relationshipType: 'handles_events_for' 
-    },
-    {
-      id: 'edge_6',
-      source: 1006,
-      target: 1003,
-      relationshipType: 'processes_events_for'
-    },
-
-    // Intra-system relationships (DataFlow)
-    {
-      id: 'edge_7',
-      source: 1007,
-      target: 1008,
-      relationshipType: 'provides_data_to'
-    },
-
-    // Cross-system relationships (Multi-system routing tests)
-    {
-      id: 'edge_8',
-      source: 1009,
-      target: 1002,
-      relationshipType: 'manages_state_for'
-    },
-    {
-      id: 'edge_9',
-      source: 1010,
-      target: 1003,
-      relationshipType: 'authenticates'
-    },
-    {
-      id: 'edge_10',
-      source: 1007,
-      target: 1009,
-      relationshipType: 'feeds_data_to'
-    },
-
-    // Configuration Engine connections (Triple-system test)
-    {
-      id: 'edge_11',
-      source: 1011,
-      target: 1001,
-      relationshipType: 'configures'
-    },
-    {
-      id: 'edge_12',
-      source: 1011,
-      target: 1003,
-      relationshipType: 'configures'
-    },
-    {
-      id: 'edge_13',
-      source: 1011,
-      target: 1007,
-      relationshipType: 'configures'
-    }
-  ]
+  const edges = []
 
   return { nodes, edges }
 }
@@ -243,6 +42,7 @@ function GraphViewerDemo() {
   const [eventLog, setEventLog] = useState([])
   const [elements, setElements] = useState([])
   const [groupVisibility, setGroupVisibility] = useState({})
+  const [systemCollapsed, setSystemCollapsed] = useState({})
   const [cyRef, setCyRef] = useState(null)
   const mapperRef = React.useRef(null)
 
@@ -258,14 +58,32 @@ function GraphViewerDemo() {
     return Array.from(groups).sort()
   }, [])
 
-  // Initialize all groups as visible
+  // Get all unique systems from demo data
+  const availableSystems = useMemo(() => {
+    const { nodes } = createDemoData()
+    const systems = new Set()
+    nodes.forEach(node => {
+      if (node.systems) {
+        node.systems.forEach(system => systems.add(system))
+      }
+    })
+    return Array.from(systems).sort()
+  }, [])
+
+  // Initialize all groups as visible and systems as expanded
   React.useEffect(() => {
     const initialVisibility = {}
     availableGroups.forEach(group => {
       initialVisibility[group] = true
     })
     setGroupVisibility(initialVisibility)
-  }, [availableGroups])
+
+    const initialSystemState = {}
+    availableSystems.forEach(system => {
+      initialSystemState[system] = false // false = expanded, true = collapsed
+    })
+    setSystemCollapsed(initialSystemState)
+  }, [availableGroups, availableSystems])
 
   // Initialize mapper and demo data
   React.useEffect(() => {
@@ -309,12 +127,53 @@ function GraphViewerDemo() {
     setGroupVisibility(newVisibility)
   }, [availableGroups])
 
+  // Handle system collapse/expand
+  const handleSystemToggle = useCallback((systemName, collapsed) => {
+    if (!cyRef || !cyRef._expandCollapseAPI) return
+
+    // Find the system compound node
+    const systemCompound = cyRef.nodes(`[compoundType = "system"][systemName = "${systemName}"]`)
+    
+    if (systemCompound.length > 0) {
+      const systemNode = systemCompound[0]
+      
+      if (collapsed) {
+        cyRef._expandCollapseAPI.collapse(systemNode)
+        console.log('🔽 Collapsing system via UI control:', systemName)
+      } else {
+        cyRef._expandCollapseAPI.expand(systemNode)
+        console.log('🔼 Expanding system via UI control:', systemName)
+      }
+      
+      setSystemCollapsed(prev => ({
+        ...prev,
+        [systemName]: collapsed
+      }))
+    }
+  }, [cyRef])
+
+  // Handle global system toggle
+  const handleGlobalSystemToggle = useCallback((collapsed) => {
+    if (!cyRef || !cyRef._expandCollapseAPI) return
+
+    availableSystems.forEach(systemName => {
+      handleSystemToggle(systemName, collapsed)
+    })
+  }, [cyRef, availableSystems, handleSystemToggle])
+
   // Check if all groups are visible and if any groups are visible
   const { allGroupsVisible, anyGroupsVisible } = useMemo(() => {
     const allVisible = availableGroups.every(group => groupVisibility[group] !== false)
     const anyVisible = availableGroups.some(group => groupVisibility[group] !== false)
     return { allGroupsVisible: allVisible, anyGroupsVisible: anyVisible }
   }, [availableGroups, groupVisibility])
+
+  // Check system collapse states
+  const { allSystemsCollapsed, anySystemsCollapsed } = useMemo(() => {
+    const allCollapsed = availableSystems.every(system => systemCollapsed[system] === true)
+    const anyCollapsed = availableSystems.some(system => systemCollapsed[system] === true)
+    return { allSystemsCollapsed: allCollapsed, anySystemsCollapsed: anyCollapsed }
+  }, [availableSystems, systemCollapsed])
 
   // Handle Cytoscape ref
   const handleCytoscapeReady = useCallback((cy) => {
@@ -336,20 +195,15 @@ function GraphViewerDemo() {
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h5" gutterBottom>
-          GraphViewer Demo - Multi-System Asset Architecture
+          GraphViewer Demo - System Expand-Collapse Test
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Comprehensive test with 11 nodes across 3 systems • 4 multi-system assets • 5 group hulls
+          Testing expand-collapse functionality • 1 system • 1 node • Use UI controls below to test
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip label="✅ Clean Architecture" color="success" size="small" />
-          <Chip label="✅ Multi-System Assets" color="success" size="small" />
-          <Chip label="✅ Display Instances" color="success" size="small" />
-          <Chip label="✅ Edge Routing" color="success" size="small" />
-          <Chip label="✅ Hull Grouping" color="success" size="small" />
-          <Chip label="✅ Drag-to-Connect" color="success" size="small" />
-          <Chip label="✅ System Compounds" color="success" size="small" />
-          <Chip label="✅ Dashed Styling" color="success" size="small" />
+          <Chip label="✅ Expand-Collapse API" color="success" size="small" />
+          <Chip label="✅ UI Controls" color="success" size="small" />
+          <Chip label="❓ Visual Cues" color="default" size="small" />
         </Box>
       </Box>
 
@@ -420,29 +274,77 @@ function GraphViewerDemo() {
             </Stack>
           </Paper>
 
-          {/* Multi-System Features Guide */}
+          {/* System Collapse Controls */}
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              System Collapse Controls
+            </Typography>
+            
+            {/* Global System Toggle */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={!allSystemsCollapsed}
+                  onChange={(e) => handleGlobalSystemToggle(!e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={`Expand All Systems (${availableSystems.filter(s => !systemCollapsed[s]).length}/${availableSystems.length})`}
+              sx={{ 
+                mb: 1,
+                '& .MuiSwitch-switchBase': allSystemsCollapsed ? {
+                  color: 'orange'
+                } : anySystemsCollapsed ? {
+                  color: 'orange'
+                } : {}
+              }}
+            />
+            
+            <Divider sx={{ my: 1 }} />
+            
+            {/* Individual System Toggles */}
+            <Stack spacing={1}>
+              {availableSystems.map(systemName => (
+                <FormControlLabel
+                  key={systemName}
+                  control={
+                    <Switch
+                      checked={!systemCollapsed[systemName]}
+                      onChange={(e) => handleSystemToggle(systemName, !e.target.checked)}
+                      color="info"
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2">{systemName}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {systemCollapsed[systemName] ? 'Collapsed' : 'Expanded'} • Click cue to toggle
+                      </Typography>
+                    </Box>
+                  }
+                />
+              ))}
+            </Stack>
+          </Paper>
+
+          {/* Simple Test Instructions */}
           <Paper sx={{ p: 2, mb: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Multi-System Features
+              Simple Test Instructions
             </Typography>
             <Box component="ul" sx={{ m: 0, pl: 2 }}>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Multi-System Assets:</strong> Data Mapper, State Manager, Auth Hub, Config Engine
+                <strong>Use UI Controls:</strong> Toggle system collapse/expand using the controls below
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Display Instances:</strong> Each asset appears in its respective system compounds
+                <strong>Check Console:</strong> Should show expand-collapse API messages
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Dashed Borders:</strong> Multi-system instances have distinctive dashed styling
+                <strong>Expected Result:</strong> System should collapse/expand programmatically via controls
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Connection Edges:</strong> Light red dashed edges link related instances
-              </Typography>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Edge Routing:</strong> Smart routing based on system context
-              </Typography>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Drag-to-Connect:</strong> Click node border, drag to create edges
+                <strong>Visual Cues:</strong> Still investigating why visual cues don't appear
               </Typography>
             </Box>
           </Paper>
@@ -470,7 +372,16 @@ function GraphViewerDemo() {
                     {entry.eventType}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {JSON.stringify(entry.payload, null, 1).substring(0, 80)}...
+                    {JSON.stringify(entry.payload, (key, value) => {
+                      // Filter out circular references and complex objects
+                      if (key === 'nodeData' || key === 'targetData' || key === 'sourceData') {
+                        return '[NodeData]'
+                      }
+                      if (typeof value === 'object' && value !== null && value.constructor && value.constructor.name === 'Element2') {
+                        return '[CytoscapeElement]'
+                      }
+                      return value
+                    }, 1).substring(0, 80)}...
                   </Typography>
                 </Box>
               ))

@@ -409,6 +409,73 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
     }
   })
   
+  // Expand-collapse cue styling for system compounds
+  styles.push({
+    selector: '.cy-expand-collapse-cue',
+    style: {
+      'background-color': '#ffffff',
+
+      'width': 16,
+      'height': 16,
+      'shape': 'round-rectangle',
+      'font-size': '12px',
+      'color': '#0074cc',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'font-weight': 'bold',
+      'z-index': 999,
+      'overlay-opacity': 0,
+      'shadow-blur': 3,
+      'shadow-color': '#000000',
+      'shadow-opacity': 0.3,
+      'shadow-offset-x': 1,
+      'shadow-offset-y': 1
+    }
+  })
+
+  // System compound styling (expanded) - simple and clean
+  styles.push({
+    selector: 'node[compoundType = "system"]',
+    style: {
+      'background-color': '#f0f8ff',
+      'background-opacity': 0.3,
+      'border-color': '#1976d2',
+      'border-width': 2,
+      'border-style': 'solid',
+      'shape': 'round-rectangle',
+      'label': 'data(label)',
+      'text-valign': 'top',
+      'text-halign': 'center',
+      'text-margin-y': -15,
+      'font-size': '14px',
+      'font-weight': 'normal',
+      'color': '#1976d2'
+    }
+  })
+
+  // Collapsed system compound styling - more compact appearance
+  styles.push({
+    selector: 'node.cy-expand-collapse-collapsed-node[compoundType = "system"]',
+    style: {
+      'background-color': '#e3f2fd',
+      'border-color': '#1976d2',
+      'border-width': 3,
+      'border-style': 'double',
+      'shape': 'round-rectangle',
+      'label': 'data(label)',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'font-size': '14px',
+      'font-weight': 'bold',
+      'color': '#1976d2',
+      'text-outline-width': 1,
+      'text-outline-color': '#ffffff',
+      'width': 120,
+      'height': 80,
+      'padding': 10
+    }
+  })
+
   // Note: Hover effects are now handled via direct style manipulation in event handlers
   // No CSS hover selectors needed since we use instance.on('mouseover') and node.style()
   
