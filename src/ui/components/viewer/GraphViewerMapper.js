@@ -189,10 +189,17 @@ export class GraphViewerMapper {
     // Remove existing hulls
     cy.elements('node.group-hull').remove()
     
-    // Get all unique groups from nodes
+    // Get all unique groups from nodes (exclude hull nodes and system compounds)
     const groups = new Map()
     cy.nodes().forEach(node => {
+      // Skip hull nodes and system compounds
+      if (node.hasClass('group-hull') || node.data('isCompound') || node.data('isHull')) {
+        return
+      }
+      
       const nodeGroups = node.data('groups') || []
+      console.log(`Node ${node.data('label')} has groups:`, nodeGroups)
+      
       nodeGroups.forEach(groupName => {
         if (!groups.has(groupName)) {
           groups.set(groupName, [])
@@ -201,11 +208,13 @@ export class GraphViewerMapper {
       })
     })
     
-    // Create hull for each visible group
+    console.log(`Found ${groups.size} groups:`, Array.from(groups.keys()))
+    
+    // Create hull for each visible group (including single-node groups)
     groups.forEach((nodes, groupName) => {
       const isVisible = groupVisibility[groupName] !== false // Default true
       
-      if (isVisible && nodes.length > 1) {
+      if (isVisible && nodes.length >= 1) {
         this.createHullElement(cy, groupName, nodes)
       }
     })
@@ -218,6 +227,7 @@ export class GraphViewerMapper {
     // Calculate bounding box of all nodes in group
     const positions = nodes.map(node => node.position())
     const padding = 60
+    const minHullSize = 120 // Minimum hull size for single nodes
     
     let minX = Infinity, maxX = -Infinity
     let minY = Infinity, maxY = -Infinity
@@ -235,8 +245,25 @@ export class GraphViewerMapper {
     minY -= padding
     maxY += padding
     
-    // Create hull element
+    // Ensure minimum size for single-node hulls
+    const currentWidth = maxX - minX
+    const currentHeight = maxY - minY
+    
+    if (currentWidth < minHullSize) {
+      const expand = (minHullSize - currentWidth) / 2
+      minX -= expand
+      maxX += expand
+    }
+    
+    if (currentHeight < minHullSize) {
+      const expand = (minHullSize - currentHeight) / 2
+      minY -= expand
+      maxY += expand
+    }
+    
+    // Create hull element (using data attributes instead of inline styles)
     const hullId = `hull_${groupName.replace(/\s+/g, '_')}`
+    const hullColor = this.getGroupColor(groupName)
     const hullElement = {
       group: 'nodes',
       data: {
@@ -244,34 +271,25 @@ export class GraphViewerMapper {
         label: groupName,
         isHull: true,
         groupName: groupName,
-        memberCount: nodes.length
+        memberCount: nodes.length,
+        hullColor: hullColor
       },
       classes: 'group-hull',
       position: {
         x: (minX + maxX) / 2,
         y: (minY + maxY) / 2
-      },
-      style: {
-        'width': maxX - minX,
-        'height': maxY - minY,
-        'background-color': this.getGroupColor(groupName),
-        'background-opacity': 0.1,
-        'border-width': 2,
-        'border-color': this.getGroupColor(groupName),
-        'border-opacity': 0.5,
-        'border-style': 'dashed',
-        'shape': 'round-rectangle',
-        'label': groupName,
-        'text-valign': 'top',
-        'text-halign': 'center',
-        'font-size': '14px',
-        'font-weight': 'bold',
-        'color': this.getGroupColor(groupName),
-        'z-index': -1
       }
     }
     
-    cy.add(hullElement)
+    // Add the hull element
+    const addedElement = cy.add(hullElement)
+    
+    // Set size using style() method after adding (more reliable)
+    addedElement.style({
+      'width': maxX - minX,
+      'height': maxY - minY
+    })
+    
     console.log(`Created hull for group: ${groupName} with ${nodes.length} members`)
   }
 

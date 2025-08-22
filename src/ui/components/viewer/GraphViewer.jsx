@@ -22,6 +22,7 @@ const GraphViewer = forwardRef(({
   style = {},
   onEvent = () => {},
   onCytoscapeReady = () => {},
+  onNodesMove = () => {},
   ...props
 }, ref) => {
   const containerRef = useRef(null)
@@ -50,6 +51,18 @@ const GraphViewer = forwardRef(({
 
     cyRef.current = cy
     console.log('GraphViewer: Cytoscape initialized successfully')
+    
+    // Setup node move listeners for hull auto-refresh
+    cy.on('position', 'node', (event) => {
+      const node = event.target
+      if (!node.hasClass('group-hull') && !node.data('isCompound')) {
+        // Throttle hull updates to avoid excessive redraws
+        clearTimeout(cy._hullUpdateTimeout)
+        cy._hullUpdateTimeout = setTimeout(() => {
+          onNodesMove()
+        }, 100)
+      }
+    })
     
     // Notify parent component that Cytoscape is ready
     onCytoscapeReady(cy)

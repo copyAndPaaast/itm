@@ -160,9 +160,11 @@ function GraphViewerDemo() {
     setGroupVisibility(newVisibility)
   }, [availableGroups])
 
-  // Check if all groups are visible
-  const allGroupsVisible = useMemo(() => {
-    return availableGroups.every(group => groupVisibility[group] !== false)
+  // Check if all groups are visible and if any groups are visible
+  const { allGroupsVisible, anyGroupsVisible } = useMemo(() => {
+    const allVisible = availableGroups.every(group => groupVisibility[group] !== false)
+    const anyVisible = availableGroups.some(group => groupVisibility[group] !== false)
+    return { allGroupsVisible: allVisible, anyGroupsVisible: anyVisible }
   }, [availableGroups, groupVisibility])
 
   // Handle Cytoscape ref
@@ -172,6 +174,13 @@ function GraphViewerDemo() {
       mapperRef.current.updateHulls(cy, groupVisibility)
     }
   }, [groupVisibility])
+
+  // Handle nodes moving - refresh hulls
+  const handleNodesMove = useCallback(() => {
+    if (cyRef && mapperRef.current) {
+      mapperRef.current.updateHulls(cyRef, groupVisibility)
+    }
+  }, [cyRef, groupVisibility])
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -197,6 +206,7 @@ function GraphViewerDemo() {
             elements={elements}
             onEvent={handleViewerEvent}
             onCytoscapeReady={handleCytoscapeReady}
+            onNodesMove={handleNodesMove}
           />
         </Box>
 
@@ -217,8 +227,13 @@ function GraphViewerDemo() {
                   color="primary"
                 />
               }
-              label="Show All Groups"
-              sx={{ mb: 1 }}
+              label={`Show All Groups (${Object.values(groupVisibility).filter(Boolean).length}/${availableGroups.length})`}
+              sx={{ 
+                mb: 1,
+                '& .MuiSwitch-switchBase': !allGroupsVisible && anyGroupsVisible ? {
+                  color: 'orange'
+                } : {}
+              }}
             />
             
             <Divider sx={{ my: 1 }} />

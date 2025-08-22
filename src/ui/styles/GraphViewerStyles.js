@@ -120,6 +120,26 @@ export const BASE_CYTOSCAPE_STYLE = [
       'line-color': '#FF5722',
       'target-arrow-color': '#FF5722'
     }
+  },
+  // Group hull styling
+  {
+    selector: 'node.group-hull',
+    style: {
+      'background-opacity': 0.1,
+      'border-width': 2,
+      'border-opacity': 0.5,
+      'border-style': 'dashed',
+      'shape': 'round-rectangle',
+      'label': 'data(label)',
+      'text-valign': 'top',
+      'text-halign': 'center',
+      'font-size': '14px',
+      'font-weight': 'bold',
+      'z-index': -1,
+      'background-color': 'data(hullColor)',
+      'border-color': 'data(hullColor)',
+      'color': 'data(hullColor)'
+    }
   }
 ]
 
