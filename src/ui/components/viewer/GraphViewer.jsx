@@ -21,6 +21,7 @@ const GraphViewer = forwardRef(({
   elements = [],
   style = {},
   onEvent = () => {},
+  onCytoscapeReady = () => {},
   ...props
 }, ref) => {
   const containerRef = useRef(null)
@@ -49,6 +50,9 @@ const GraphViewer = forwardRef(({
 
     cyRef.current = cy
     console.log('GraphViewer: Cytoscape initialized successfully')
+    
+    // Notify parent component that Cytoscape is ready
+    onCytoscapeReady(cy)
 
     return () => {
       if (cyRef.current) {

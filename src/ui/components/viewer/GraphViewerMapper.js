@@ -181,11 +181,123 @@ export class GraphViewerMapper {
 
   /**
    * Update hull overlays for groups
-   * TODO: Implement hull drawing for groups (Step 3)
+   * Creates visual boundary around group members using convex hull
    */
   updateHulls(cy, groupVisibility = {}) {
-    // Placeholder for hull implementation
-    console.log('Hull updates will be implemented in Step 3')
+    console.log('Updating hulls with visibility:', groupVisibility)
+    
+    // Remove existing hulls
+    cy.elements('node.group-hull').remove()
+    
+    // Get all unique groups from nodes
+    const groups = new Map()
+    cy.nodes().forEach(node => {
+      const nodeGroups = node.data('groups') || []
+      nodeGroups.forEach(groupName => {
+        if (!groups.has(groupName)) {
+          groups.set(groupName, [])
+        }
+        groups.get(groupName).push(node)
+      })
+    })
+    
+    // Create hull for each visible group
+    groups.forEach((nodes, groupName) => {
+      const isVisible = groupVisibility[groupName] !== false // Default true
+      
+      if (isVisible && nodes.length > 1) {
+        this.createHullElement(cy, groupName, nodes)
+      }
+    })
+  }
+
+  /**
+   * Create a hull element for a group
+   */
+  createHullElement(cy, groupName, nodes) {
+    // Calculate bounding box of all nodes in group
+    const positions = nodes.map(node => node.position())
+    const padding = 60
+    
+    let minX = Infinity, maxX = -Infinity
+    let minY = Infinity, maxY = -Infinity
+    
+    positions.forEach(pos => {
+      minX = Math.min(minX, pos.x)
+      maxX = Math.max(maxX, pos.x)
+      minY = Math.min(minY, pos.y)
+      maxY = Math.max(maxY, pos.y)
+    })
+    
+    // Add padding
+    minX -= padding
+    maxX += padding
+    minY -= padding
+    maxY += padding
+    
+    // Create hull element
+    const hullId = `hull_${groupName.replace(/\s+/g, '_')}`
+    const hullElement = {
+      group: 'nodes',
+      data: {
+        id: hullId,
+        label: groupName,
+        isHull: true,
+        groupName: groupName,
+        memberCount: nodes.length
+      },
+      classes: 'group-hull',
+      position: {
+        x: (minX + maxX) / 2,
+        y: (minY + maxY) / 2
+      },
+      style: {
+        'width': maxX - minX,
+        'height': maxY - minY,
+        'background-color': this.getGroupColor(groupName),
+        'background-opacity': 0.1,
+        'border-width': 2,
+        'border-color': this.getGroupColor(groupName),
+        'border-opacity': 0.5,
+        'border-style': 'dashed',
+        'shape': 'round-rectangle',
+        'label': groupName,
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'font-size': '14px',
+        'font-weight': 'bold',
+        'color': this.getGroupColor(groupName),
+        'z-index': -1
+      }
+    }
+    
+    cy.add(hullElement)
+    console.log(`Created hull for group: ${groupName} with ${nodes.length} members`)
+  }
+
+  /**
+   * Get color for a group based on its name
+   */
+  getGroupColor(groupName) {
+    // Color palette for different groups
+    const colors = [
+      '#FF6B6B', // Red
+      '#4ECDC4', // Teal  
+      '#45B7D1', // Blue
+      '#96CEB4', // Green
+      '#FFEAA7', // Yellow
+      '#DDA0DD', // Plum
+      '#98D8C8', // Mint
+      '#F7DC6F'  // Gold
+    ]
+    
+    // Hash group name to get consistent color
+    let hash = 0
+    for (let i = 0; i < groupName.length; i++) {
+      hash = ((hash << 5) - hash + groupName.charCodeAt(i)) & 0xffffffff
+    }
+    
+    return colors[Math.abs(hash) % colors.length]
   }
 
   /**
