@@ -22,7 +22,7 @@ const createDemoData = () => {
       title: 'GraphViewer Interface',
       assetClass: 'Application',
       systems: ['ViewerArchitecture'],
-      groups: ['Step1Foundation'],
+      groups: [],
       properties: { 
         status: 'completed',
         description: 'Interface definitions and contracts'
@@ -33,7 +33,7 @@ const createDemoData = () => {
       title: 'Data Mapper',
       assetClass: 'WebServer',
       systems: ['ViewerArchitecture'],
-      groups: ['Step1Foundation'],
+      groups: [],
       properties: {
         status: 'completed', 
         description: 'Business data to Cytoscape transformation'
@@ -43,8 +43,8 @@ const createDemoData = () => {
       nodeId: 1003,
       title: 'Service Layer',
       assetClass: 'DatabaseServer',
-      systems: ['ViewerArchitecture2'], 
-      groups: ['Step5Interactive'],
+      systems: ['ViewerArchitecture'], 
+      groups: [],
       properties: {
         status: 'placeholder',
         description: 'Interactive features and event handling'
@@ -54,8 +54,8 @@ const createDemoData = () => {
       nodeId: 1004,
       title: 'React Component',
       assetClass: 'Application',
-      systems: ['ViewerArchitecture2'],
-      groups: ['Step4ViewComponent'],
+      systems: ['ViewerArchitecture'],
+      groups: [],
       properties: {
         status: 'placeholder',
         description: 'Pure view component with Cytoscape'
@@ -187,7 +187,7 @@ function GraphViewerDemo() {
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h5" gutterBottom>
-          GraphViewer Demo - Step 4 Interactive Features
+          GraphViewer Demo - Step 4 Interactive Features (Fixed)
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip label="✅ Clean Architecture" color="success" size="small" />
@@ -196,8 +196,9 @@ function GraphViewerDemo() {
           <Chip label="✅ V1 Styling System" color="success" size="small" />
           <Chip label="✅ Hull Grouping" color="success" size="small" />
           <Chip label="✅ Hover Effects" color="success" size="small" />
-          <Chip label="✅ Drag-to-Connect" color="success" size="small" />
+          <Chip label="✅ Edgehandles Plugin" color="success" size="small" />
           <Chip label="✅ Event System" color="success" size="small" />
+          <Chip label="✅ Native Tooltips" color="success" size="small" />
         </Box>
       </Box>
 
@@ -275,16 +276,19 @@ function GraphViewerDemo() {
             </Typography>
             <Box component="ul" sx={{ m: 0, pl: 2 }}>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Hover:</strong> Move mouse over nodes for blue border effect
+                <strong>Hover:</strong> Blue border effect + native browser tooltips
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Drag-to-Connect:</strong> Click near node border (8px) and drag to connect
+                <strong>Edgehandles:</strong> Hover over nodes to see handles, drag to create edges
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Node Creation:</strong> Ctrl+Click on empty space to create nodes
+                <strong>Node Creation:</strong> Ctrl+Click (or Cmd+Click on Mac) on empty space
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
                 <strong>Hull Following:</strong> Groups follow nodes when dragged
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                <strong>Toggle Groups:</strong> Use controls to show/hide group hulls
               </Typography>
             </Box>
           </Paper>

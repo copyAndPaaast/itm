@@ -41,13 +41,20 @@ const GraphViewer = forwardRef(({
   onNodesMoveRef.current = onNodesMove
 
   /**
-   * Setup interactive features: hover effects and drag-to-connect
+   * Setup interactive features: custom drag-to-connect system
    */
   const setupInteractiveFeatures = useCallback((cy) => {
-    // Hover effects - 10px blue border
+    console.log('🎯 Setting up custom drag-to-connect system')
+    
+    // State for drag-to-connect
+    let isDragging = false
+    let dragStartNode = null
+    let tempEdge = null
+    
+    // Enhanced hover effects
     cy.on('mouseover', 'node', (event) => {
       const node = event.target
-      if (!node.hasClass('group-hull') && !node.selected()) {
+      if (!node.hasClass('group-hull') && !node.data('isCompound') && !node.selected()) {
         node.style('border-color', '#0074cc')
         node.style('border-width', 10)
       }
@@ -61,7 +68,7 @@ const GraphViewer = forwardRef(({
 
     cy.on('mouseout', 'node', (event) => {
       const node = event.target
-      if (!node.hasClass('group-hull') && !node.selected()) {
+      if (!node.hasClass('group-hull') && !node.data('isCompound') && !node.selected()) {
         // Restore original border color based on node type
         const nodeType = node.data('type') || 'unknown'
         let originalColor = '#666666' // default
@@ -76,126 +83,275 @@ const GraphViewer = forwardRef(({
       }
     })
 
-    // Drag-to-connect functionality
-    let isDragging = false
-    let dragStartNode = null
-
+    // Border click detection for edge creation
     cy.on('mousedown', 'node', (event) => {
       const node = event.target
-      if (node.hasClass('group-hull')) return
       
+      // Skip for hull groups and compound nodes
+      if (node.hasClass('group-hull') || node.data('isCompound')) {
+        return
+      }
+      
+      // Only allow edge creation for editors/admins
+      if (userPermissions !== 'editor' && userPermissions !== 'admin') {
+        node.select()
+        return
+      }
+      
+      // Check if click is on the border (edge creation zone)
       const mousePos = event.position || event.cyPosition
       const nodePos = node.position()
-      const nodeSize = node.width() || 60
+      const nodeSize = node.width()
       
-      // Calculate distance from center to click point
       const distance = Math.sqrt(
-        Math.pow(mousePos.x - nodePos.x, 2) + Math.pow(mousePos.y - nodePos.y, 2)
+        Math.pow(mousePos.x - nodePos.x, 2) + 
+        Math.pow(mousePos.y - nodePos.y, 2)
       )
+      
       const borderThickness = 8
       
-      // If click is near border (within 8px of edge), start drag-to-connect
       if (distance > (nodeSize/2 - borderThickness)) {
-        if (userPermissions === 'editor' || userPermissions === 'admin') {
-          dragStartNode = node
-          isDragging = true
-          node.ungrabify() // Prevent normal dragging
-          event.stopPropagation()
-          event.preventDefault()
-          
-          onEventRef.current('drag_connect_start', {
-            nodeId: node.id(),
-            nodeData: node.data()
-          })
-        }
+        // Border click - start edge creation
+        console.log('🎯 Border click detected - starting edge creation')
+        dragStartNode = node
+        isDragging = true
+        node.ungrabify()
+        event.stopPropagation()
+        event.preventDefault()
+        
+        onEventRef.current('edge_creation_start', {
+          sourceId: node.id(),
+          sourceData: node.data()
+        })
       } else {
-        // Normal click - allow selection and dragging
+        // Center click - normal selection/dragging
         node.grabify()
+        node.select()
       }
     })
 
+    // Create temporary edge during drag
     cy.on('mousemove', (event) => {
-      if (isDragging && dragStartNode) {
-        // Remove existing temp elements
-        cy.elements('.temp-edge, .temp-node').remove()
-        
+      if (isDragging && dragStartNode && (userPermissions === 'editor' || userPermissions === 'admin')) {
+        // Remove previous temp edge
+        cy.elements('.temp-edge').remove()
+        cy.elements('.temp-node').remove()
+
         const timestamp = Date.now()
         const tempNodeId = `temp-target-${timestamp}`
         const tempEdgeId = `temp-edge-${timestamp}`
-        
-        // Create temporary visual feedback
-        cy.add([
-          {
-            group: 'nodes',
-            data: { 
-              id: tempNodeId,
-              label: '',
-              type: 'temp'
-            },
-            position: { x: event.position.x, y: event.position.y },
-            classes: 'temp-node'
+
+        // Create temporary target node
+        cy.add({
+          group: 'nodes',
+          data: { 
+            id: tempNodeId,
+            label: 'temp-target'
           },
-          {
-            group: 'edges', 
-            data: {
-              id: tempEdgeId,
-              source: dragStartNode.id(),
-              target: tempNodeId
-            },
-            classes: 'temp-edge'
-          }
-        ])
+          position: { x: event.position.x, y: event.position.y },
+          classes: 'temp-node'
+        })
+
+        // Create temporary edge
+        tempEdge = cy.add({
+          group: 'edges',
+          data: {
+            id: tempEdgeId,
+            source: dragStartNode.id(),
+            target: tempNodeId
+          },
+          classes: 'temp-edge'
+        })
       }
     })
 
+    // Complete edge creation on mouse up
     cy.on('mouseup', (event) => {
       if (isDragging && dragStartNode) {
         // Clean up temp elements
-        cy.elements('.temp-edge, .temp-node').remove()
-        
-        // Re-enable node dragging
+        cy.elements('.temp-edge').remove()
+        cy.elements('.temp-node').remove()
+
         dragStartNode.grabify()
-        
-        const targetNode = event.target
-        
-        if (targetNode.isNode && targetNode.isNode() && 
-            !targetNode.hasClass('temp-node') && 
-            !targetNode.hasClass('group-hull') &&
-            dragStartNode.id() !== targetNode.id()) {
-          // Connect to existing node
-          onEventRef.current('create_edge', {
-            sourceId: dragStartNode.id(),
-            targetId: targetNode.id(),
-            sourceData: dragStartNode.data(),
-            targetData: targetNode.data()
-          })
-        } else {
-          // Check if dropped on empty space
-          const position = event.position
-          if (position && !targetNode.isNode()) {
-            onEventRef.current('create_node_and_edge', {
-              sourceId: dragStartNode.id(),
-              sourceData: dragStartNode.data(),
-              position: position
+
+        // Only create edges if user has permissions
+        if (userPermissions === 'editor' || userPermissions === 'admin') {
+          const targetNode = event.target
+          
+          if (targetNode !== cy && targetNode.isNode() && !targetNode.hasClass('temp-node') && 
+              !targetNode.hasClass('group-hull') && !targetNode.data('isCompound')) {
+            // Connect to existing node
+            console.log('✅ Creating edge between nodes')
+            const edgeId = `edge_${dragStartNode.id()}_${targetNode.id()}_${Date.now()}`
+            
+            cy.add({
+              group: 'edges',
+              data: {
+                id: edgeId,
+                source: dragStartNode.id(),
+                target: targetNode.id(),
+                relationshipType: 'connects_to'
+              }
             })
+            
+            onEventRef.current('create_edge', {
+              sourceId: dragStartNode.id(),
+              targetId: targetNode.id(),
+              edgeId: edgeId,
+              sourceData: dragStartNode.data(),
+              targetData: targetNode.data()
+            })
+          } else {
+            // Check if we can create a node at this position
+            const nodeAtPosition = cy.nodes().filter(function(node) {
+              if (node.hasClass('temp-node') || node.hasClass('group-hull') || node.data('isCompound')) return false
+              const nodePos = node.position()
+              const distance = Math.sqrt(
+                Math.pow(event.position.x - nodePos.x, 2) +
+                Math.pow(event.position.y - nodePos.y, 2)
+              )
+              return distance < node.width() / 2
+            })
+
+            if (nodeAtPosition.length > 0) {
+              // Connect to node at position
+              const targetNode = nodeAtPosition[0]
+              console.log('✅ Creating edge to node at position')
+              const edgeId = `edge_${dragStartNode.id()}_${targetNode.id()}_${Date.now()}`
+              
+              cy.add({
+                group: 'edges',
+                data: {
+                  id: edgeId,
+                  source: dragStartNode.id(),
+                  target: targetNode.id(),
+                  relationshipType: 'connects_to'
+                }
+              })
+              
+              onEventRef.current('create_edge', {
+                sourceId: dragStartNode.id(),
+                targetId: targetNode.id(),
+                edgeId: edgeId
+              })
+            } else {
+              // Create new node and connect
+              console.log('🆕 Creating new node at empty space')
+              const nodeId = `node_${Date.now()}`
+              const newNode = cy.add({
+                group: 'nodes',
+                data: {
+                  id: nodeId,
+                  label: `New Node`,
+                  type: 'application',
+                  assetClass: 'Application'
+                },
+                position: {
+                  x: event.position.x,
+                  y: event.position.y
+                }
+              })
+              
+              const edgeId = `edge_${dragStartNode.id()}_${nodeId}_${Date.now()}`
+              cy.add({
+                group: 'edges',
+                data: {
+                  id: edgeId,
+                  source: dragStartNode.id(),
+                  target: nodeId,
+                  relationshipType: 'connects_to'
+                }
+              })
+              
+              onEventRef.current('create_node', {
+                nodeId: nodeId,
+                position: event.position,
+                nodeData: newNode.data()
+              })
+              
+              onEventRef.current('create_edge', {
+                sourceId: dragStartNode.id(),
+                targetId: nodeId,
+                edgeId: edgeId
+              })
+            }
           }
         }
-        
-        // Reset drag state
-        isDragging = false
-        dragStartNode = null
       }
+      
+      // Reset drag state
+      isDragging = false
+      dragStartNode = null
+      tempEdge = null
     })
 
-    // Background click for node creation (Ctrl+click)
+    // Simple tooltip system using HTML title attribute (no popper plugin needed)
+    const setupSimpleTooltips = () => {
+      cy.nodes().forEach(node => {
+        if (node.hasClass('group-hull')) return
+        
+        const nodeData = node.data()
+        const tooltipText = [
+          `${nodeData.label || nodeData.id}`,
+          `Type: ${nodeData.type || 'Unknown'}`,
+          nodeData.assetClass ? `Asset: ${nodeData.assetClass}` : '',
+          nodeData.systems ? `Systems: ${nodeData.systems.join(', ')}` : '',
+          nodeData.groups ? `Groups: ${nodeData.groups.join(', ')}` : ''
+        ].filter(Boolean).join('\n')
+        
+        // Add title attribute for native browser tooltips
+        node.data('tooltip', tooltipText)
+      })
+    }
+
+    // Setup simple tooltips after initial render
+    setTimeout(setupSimpleTooltips, 100)
+
+    // Background click for node creation (Ctrl+click or Cmd+click) with debug logging
     cy.on('tap', (event) => {
       if (event.target === cy) { // Clicked on background
         const originalEvent = event.originalEvent
-        if (originalEvent && originalEvent.ctrlKey) {
+        const isModifierClick = originalEvent && (originalEvent.ctrlKey || originalEvent.metaKey)
+        
+        console.log('Background click detected:', {
+          hasOriginalEvent: !!originalEvent,
+          ctrlKey: originalEvent?.ctrlKey,
+          metaKey: originalEvent?.metaKey,
+          isModifierClick,
+          userPermissions,
+          position: event.position
+        })
+        
+        if (isModifierClick) {
           if (userPermissions === 'editor' || userPermissions === 'admin') {
+            console.log('Creating node at:', event.position)
+            
+            // Actually create the node in the graph (like the original implementation)
+            const nodeId = `node_${Date.now()}`
+            const newNodeData = {
+              group: 'nodes',
+              data: {
+                id: nodeId,
+                label: `New Node`,
+                type: 'application', // Default type
+                assetClass: 'Application'
+              },
+              position: {
+                x: event.position.x,
+                y: event.position.y
+              }
+            }
+            
+            const newNode = cy.add(newNodeData)
+            
+            // Fire event for logging/monitoring
             onEventRef.current('create_node', {
-              position: event.position
+              nodeId: nodeId,
+              position: event.position,
+              nodeData: newNode.data()
             })
+          } else {
+            console.log('Node creation blocked - insufficient permissions')
           }
         } else {
           // Clear selection on background click

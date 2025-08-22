@@ -168,7 +168,36 @@ export const BASE_CYTOSCAPE_STYLE = [
       'curve-style': 'straight',
       'z-index': 999
     }
-  }
+  },
+  // Custom drag-to-connect temp elements
+  {
+    selector: 'node.temp-node',
+    style: {
+      'background-color': '#ff9800',
+      'background-opacity': 0.7,
+      'border-color': '#ff5722',
+      'border-width': 2,
+      'border-style': 'dashed',
+      'width': 20,
+      'height': 20,
+      'shape': 'circle',
+      'z-index': 999,
+      'opacity': 0  // Hidden temp node
+    }
+  },
+  {
+    selector: 'edge.temp-edge',
+    style: {
+      'line-color': '#2196F3',
+      'line-style': 'dashed',
+      'line-opacity': 0.8,
+      'width': 3,
+      'target-arrow-color': '#2196F3',
+      'target-arrow-shape': 'triangle',
+      'curve-style': 'straight',
+      'z-index': 999
+    }
+  },
 ]
 
 /**

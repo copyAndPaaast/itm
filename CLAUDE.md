@@ -10,6 +10,19 @@
 - Backend: `npm run build`, `npm run dev` 
 - UI: `npm run dev:ui`, `npm run build:ui`
 
+## Cytoscape.js Plugin Ecosystem
+**IMPORTANT**: Before implementing custom graph functionality, always check the official Cytoscape.js plugin repository: 
+- **Repository**: https://github.com/orgs/cytoscape/repositories?type=all
+- **Available plugins**: edgehandles, compound-drag-and-drop, popper, autopan-on-drag, etc.
+- **Principle**: Use official plugins instead of custom implementations whenever possible
+- **Benefits**: Better performance, maintenance, testing, and community support
+
+**Current plugins in use:**
+- `cytoscape-dagre`: Hierarchical layout algorithm
+- `cytoscape-edgehandles`: Professional drag-to-connect edge creation
+- `cytoscape-compound-drag-and-drop`: Interactive node grouping and hierarchy management  
+- `cytoscape-popper`: Tooltip and popup positioning
+
 ## ITM Context
 **IT Asset Management** - Graph nodes represent servers, applications, databases, network devices, users, locations with typed relationships carrying properties.
 
