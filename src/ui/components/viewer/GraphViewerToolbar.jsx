@@ -14,7 +14,11 @@ import {
   InputAdornment,
   Fade,
   Stack,
-  Chip
+  Chip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material'
 import {
   ZoomIn,
@@ -24,7 +28,10 @@ import {
   Refresh,
   GetApp,
   Search,
-  Close
+  Close,
+  Hub,
+  ScatterPlot,
+  RadioButtonUnchecked
 } from '@mui/icons-material'
 
 /**
@@ -54,6 +61,9 @@ export const GraphViewerToolbar = ({
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [localSearchValue, setLocalSearchValue] = useState(searchValue)
   const searchInputRef = useRef(null)
+  
+  // Layout menu state
+  const [layoutMenuAnchor, setLayoutMenuAnchor] = useState(null)
 
   // Sync external search value
   useEffect(() => {
@@ -90,8 +100,17 @@ export const GraphViewerToolbar = ({
     onEvent('export', { format: 'png' })
   }
 
-  const handleLayout = () => {
-    onEvent('layout', { action: 'dagre' })
+  const handleLayoutMenuOpen = (event) => {
+    setLayoutMenuAnchor(event.currentTarget)
+  }
+
+  const handleLayoutMenuClose = () => {
+    setLayoutMenuAnchor(null)
+  }
+
+  const handleLayoutChange = (layoutType) => {
+    onEvent('layout', { action: 'change', layoutType })
+    handleLayoutMenuClose()
   }
 
   /**
@@ -279,8 +298,8 @@ export const GraphViewerToolbar = ({
         {/* Layout Controls */}
         <IconButton 
           size="small" 
-          onClick={handleLayout}
-          title="Apply Layout"
+          onClick={handleLayoutMenuOpen}
+          title="Change Layout"
           disabled={loading}
         >
           <AccountTree />
@@ -307,6 +326,54 @@ export const GraphViewerToolbar = ({
           </IconButton>
         </Box>
       </Toolbar>
+
+      {/* Layout Selection Menu */}
+      <Menu
+        anchorEl={layoutMenuAnchor}
+        open={Boolean(layoutMenuAnchor)}
+        onClose={handleLayoutMenuClose}
+        PaperProps={{
+          elevation: 3,
+          sx: { mt: 1 }
+        }}
+      >
+        <MenuItem onClick={() => handleLayoutChange('dagre')}>
+          <ListItemIcon>
+            <AccountTree />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Hierarchical"
+            secondary="Top-down hierarchy"
+          />
+        </MenuItem>
+        <MenuItem onClick={() => handleLayoutChange('cola')}>
+          <ListItemIcon>
+            <Hub />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Force Directed"
+            secondary="Physics-based layout"
+          />
+        </MenuItem>
+        <MenuItem onClick={() => handleLayoutChange('cose-bilkent')}>
+          <ListItemIcon>
+            <ScatterPlot />
+          </ListItemIcon>
+          <ListItemText 
+            primary="High Quality"
+            secondary="Optimized positioning"
+          />
+        </MenuItem>
+        <MenuItem onClick={() => handleLayoutChange('circle')}>
+          <ListItemIcon>
+            <RadioButtonUnchecked />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Circle"
+            secondary="Circular arrangement"
+          />
+        </MenuItem>
+      </Menu>
     </Paper>
   )
 }

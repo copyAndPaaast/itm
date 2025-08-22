@@ -12,25 +12,142 @@ import { GraphViewerMapper } from './GraphViewerMapper.js'
 import { ViewerEvents } from './GraphViewerInterface.js'
 
 /**
- * Simple demo data - Single system with one child node for debugging expand-collapse cues
+ * Enhanced demo data - Two systems with six nodes, groups, and multi-system asset
  */
 const createDemoData = () => {
-  // Minimal test data to debug expand-collapse visual cues
   const nodes = [
+    // Production System Nodes
     {
       nodeId: 1001,
-      title: 'Test Node',
-      assetClass: 'Application',
-      systems: ['TestSystem'],
-      groups: [],
+      title: 'Web Server',
+      assetClass: 'Server',
+      systems: ['Production'],
+      groups: ['WebCluster'],
       properties: { 
-        status: 'test',
-        description: 'Simple node for testing expand-collapse cues'
+        hostname: 'web01.company.com',
+        status: 'active',
+        cpu_cores: 4,
+        memory_gb: 16
+      }
+    },
+    {
+      nodeId: 1002,
+      title: 'Database Server',
+      assetClass: 'Server', 
+      systems: ['Production'],
+      groups: ['WebCluster'],
+      properties: {
+        hostname: 'db01.company.com',
+        status: 'active',
+        db_type: 'PostgreSQL',
+        storage_gb: 500
+      }
+    },
+    {
+      nodeId: 1003,
+      title: 'Load Balancer',
+      assetClass: 'NetworkDevice',
+      systems: ['Production'],
+      groups: [],
+      properties: {
+        device_type: 'HAProxy',
+        status: 'active',
+        capacity: '10Gbps'
+      }
+    },
+    // Development System Nodes
+    {
+      nodeId: 2001,
+      title: 'Dev Server',
+      assetClass: 'Server',
+      systems: ['Development'],
+      groups: [],
+      properties: {
+        hostname: 'dev01.company.com',
+        status: 'active',
+        purpose: 'development'
+      }
+    },
+    {
+      nodeId: 2002,
+      title: 'Test Database',
+      assetClass: 'Database',
+      systems: ['Development'],
+      groups: [],
+      properties: {
+        db_name: 'test_db',
+        status: 'active',
+        environment: 'testing'
+      }
+    },
+    // Multi-System Node (appears in both systems)
+    {
+      nodeId: 3001,
+      title: 'Monitoring Service',
+      assetClass: 'Application',
+      systems: ['Production', 'Development'],
+      groups: [],
+      properties: {
+        service_type: 'monitoring',
+        status: 'active',
+        monitors: 'both environments',
+        version: '2.1.0'
       }
     }
   ]
 
-  const edges = []
+  const edges = [
+    {
+      edgeId: 'edge_1001_1002',
+      source: 1001,
+      target: 1002,
+      relationshipType: 'connects_to',
+      properties: {
+        connection_type: 'database',
+        port: 5432
+      }
+    },
+    {
+      edgeId: 'edge_1003_1001', 
+      source: 1003,
+      target: 1001,
+      relationshipType: 'routes_to',
+      properties: {
+        protocol: 'HTTP',
+        weight: 100
+      }
+    },
+    {
+      edgeId: 'edge_2001_2002',
+      source: 2001,
+      target: 2002,
+      relationshipType: 'uses',
+      properties: {
+        access_type: 'read_write',
+        purpose: 'development'
+      }
+    },
+    {
+      edgeId: 'edge_3001_1001',
+      source: 3001,
+      target: 1001,
+      relationshipType: 'monitors',
+      properties: {
+        check_type: 'health',
+        interval: '30s'
+      }
+    },
+    {
+      edgeId: 'edge_3001_2001',
+      source: 3001,
+      target: 2001,
+      relationshipType: 'monitors',
+      properties: {
+        check_type: 'health', 
+        interval: '60s'
+      }
+    }
+  ]
 
   return { nodes, edges }
 }
@@ -195,15 +312,17 @@ function GraphViewerDemo() {
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h5" gutterBottom>
-          GraphViewer Demo - System Expand-Collapse Test
+          GraphViewer Demo - Enhanced Multi-System Architecture
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Testing expand-collapse functionality • 1 system • 1 node • Use UI controls below to test
+          2 systems • 6 nodes • WebCluster group • Multi-system monitoring • Search & expand-collapse functionality
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip label="✅ Expand-Collapse API" color="success" size="small" />
-          <Chip label="✅ UI Controls" color="success" size="small" />
-          <Chip label="❓ Visual Cues" color="default" size="small" />
+          <Chip label="✅ Search Toolbar" color="success" size="small" />
+          <Chip label="✅ Layout Options" color="success" size="small" />
+          <Chip label="✅ Multi-System Assets" color="success" size="small" />
+          <Chip label="✅ Group Management" color="success" size="small" />
+          <Chip label="✅ System Collapse" color="success" size="small" />
         </Box>
       </Box>
 

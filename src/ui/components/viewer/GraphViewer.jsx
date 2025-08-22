@@ -9,6 +9,8 @@ import { Box, Paper } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import cytoscape from 'cytoscape'
 import dagre from 'cytoscape-dagre'
+import cola from 'cytoscape-cola'
+import coseBilkent from 'cytoscape-cose-bilkent'
 import expandCollapse from 'cytoscape-expand-collapse'
 import { buildCytoscapeStyle } from '../../styles/GraphViewerStyles.js'
 import GraphViewerToolbar from './GraphViewerToolbar.jsx'
@@ -16,6 +18,8 @@ import GraphSearchService from './GraphSearchService.js'
 
 // Register Cytoscape extensions
 cytoscape.use(dagre)
+cytoscape.use(cola)
+cytoscape.use(coseBilkent)
 cytoscape.use(expandCollapse)
 
 /**
@@ -102,7 +106,30 @@ const GraphViewer = forwardRef(({
         if (cyRef.current) {
           if (eventData.action === 'fit') {
             cyRef.current.fit()
+          } else if (eventData.action === 'change' && eventData.layoutType) {
+            // Apply specific layout type
+            const layoutConfig = {
+              name: eventData.layoutType,
+              animate: true,
+              animationDuration: 500
+            }
+            
+            // Add specific configuration for different layouts
+            if (eventData.layoutType === 'dagre') {
+              layoutConfig.nodeSep = 100
+              layoutConfig.edgeSep = 50
+              layoutConfig.rankSep = 150
+            } else if (eventData.layoutType === 'circle') {
+              layoutConfig.radius = Math.min(400, Math.max(200, cyRef.current.nodes().length * 20))
+            } else if (eventData.layoutType === 'cola') {
+              layoutConfig.maxSimulationTime = 2000
+              layoutConfig.nodeSpacing = 100
+            }
+            
+            cyRef.current.layout(layoutConfig).run()
+            console.log(`🎨 Applied ${eventData.layoutType} layout`)
           } else if (eventData.action === 'dagre') {
+            // Fallback for direct dagre action
             cyRef.current.layout({ name: 'dagre' }).run()
           }
         }
