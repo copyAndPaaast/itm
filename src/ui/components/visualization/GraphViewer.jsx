@@ -7,30 +7,13 @@ import React, { useRef, useEffect, forwardRef, useImperativeHandle, useState } f
 import { 
   Box, 
   Paper, 
-  Toolbar, 
-  IconButton, 
-  Typography, 
   Alert, 
   CircularProgress,
   Chip,
-  Stack,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText
+  Stack
 } from '@mui/material'
-import {
-  ZoomIn,
-  ZoomOut,
-  CenterFocusStrong,
-  AccountTree,
-  Refresh,
-  GetApp,
-  LinearScale,
-  Hub,
-  ScatterPlot,
-  RadioButtonUnchecked
-} from '@mui/icons-material'
+import GraphViewerToolbar from './GraphViewerToolbar.jsx'
+import GraphSearchService from './GraphSearchService.js'
 
 /**
  * GraphViewer Component - Pure presentation component
@@ -74,24 +57,43 @@ export const GraphViewer = forwardRef((props, ref) => {
   // Refs
   const containerRef = useRef(null)
   const graphContainerRef = useRef(null)
+  const searchServiceRef = useRef(null)
   
-  // Local state for layout menu
-  const [layoutMenuAnchor, setLayoutMenuAnchor] = useState(null)
+  // Search state
+  const [searchValue, setSearchValue] = useState('')
+  const [searchResults, setSearchResults] = useState([])
 
   /**
    * Initialize graph when container is ready
    */
   useEffect(() => {
     if (graphContainerRef.current && onInitialize) {
-      onInitialize(graphContainerRef.current)
+      // Enhanced initialization that includes search service setup
+      const enhancedInitialize = (container) => {
+        onInitialize(container)
+        // Note: Search service will be initialized when cytoscape instance is passed back
+      }
+      enhancedInitialize(graphContainerRef.current)
     }
   }, [onInitialize])
+
+  /**
+   * Initialize search service when cytoscape instance is available
+   * This should be called from the hook that manages the cytoscape instance
+   */
+  const initializeSearchService = (cytoscapeInstance) => {
+    if (cytoscapeInstance && !searchServiceRef.current) {
+      searchServiceRef.current = new GraphSearchService(cytoscapeInstance)
+      console.log('🔍 Search service initialized')
+    }
+  }
 
   /**
    * Expose control methods via ref
    */
   useImperativeHandle(ref, () => ({
     getContainer: () => graphContainerRef.current,
+    initializeSearchService: initializeSearchService,
     focus: () => {
       if (graphContainerRef.current) {
         graphContainerRef.current.focus()
@@ -102,51 +104,63 @@ export const GraphViewer = forwardRef((props, ref) => {
         containerRef.current.scrollIntoView({ behavior: 'smooth' })
       }
     }
-  }), [])
+  }), [initializeSearchService])
+
 
   /**
-   * Handle toolbar actions
+   * Search functionality
    */
-  const handleZoomIn = () => {
-    onEvent('zoom', { action: 'zoomIn', factor: 1.2 })
+  const handleSearch = (query) => {
+    setSearchValue(query)
+    
+    if (searchServiceRef.current) {
+      if (query.trim()) {
+        const matches = searchServiceRef.current.searchHighlightAndFocus(query)
+        setSearchResults(matches)
+        console.log(`🔍 Search results: ${matches.length} nodes found`)
+      } else {
+        searchServiceRef.current.clearHighlight()
+        setSearchResults([])
+      }
+    }
   }
 
-  const handleZoomOut = () => {
-    onEvent('zoom', { action: 'zoomOut', factor: 0.8 })
+  const handleSearchEvent = (eventData) => {
+    if (!searchServiceRef.current) return
+
+    switch (eventData.action) {
+      case 'highlight':
+        handleSearch(eventData.query)
+        break
+      case 'clear':
+        searchServiceRef.current.clearHighlight()
+        setSearchValue('')
+        setSearchResults([])
+        break
+      case 'selectResult':
+        // Focus on specific search result
+        if (eventData.resultId) {
+          const node = searchServiceRef.current.cy.getElementById(eventData.resultId)
+          if (node.length > 0) {
+            searchServiceRef.current.cy.center(node)
+            node.select()
+          }
+        }
+        break
+      default:
+        break
+    }
   }
 
-  const handleFit = () => {
-    onEvent('layout', { action: 'fit' })
+  // Enhanced event handler that includes search events
+  const handleEnhancedEvent = (type, data) => {
+    if (type === 'search') {
+      handleSearchEvent(data)
+    } else {
+      onEvent(type, data)
+    }
   }
 
-  const handleRefresh = () => {
-    onEvent('refresh', {})
-  }
-
-  const handleLayoutMenuOpen = (event) => {
-    setLayoutMenuAnchor(event.currentTarget)
-  }
-
-  const handleLayoutMenuClose = () => {
-    setLayoutMenuAnchor(null)
-  }
-
-  const handleLayoutChange = (layoutType) => {
-    onEvent('layout', { action: 'change', layoutType })
-    handleLayoutMenuClose()
-  }
-
-  const handleExport = () => {
-    onEvent('export', { format: 'png' })
-  }
-
-  // Layout options with icons and descriptions
-  const layoutOptions = [
-    { type: 'dagre', label: 'Hierarchical', icon: <AccountTree />, description: 'Top-down hierarchy' },
-    { type: 'cola', label: 'Force Directed', icon: <Hub />, description: 'Physics-based layout' },
-    { type: 'cose-bilkent', label: 'High Quality', icon: <ScatterPlot />, description: 'Optimized positioning' },
-    { type: 'circle', label: 'Circle', icon: <RadioButtonUnchecked />, description: 'Circular arrangement' }
-  ]
 
   /**
    * Get selection summary for display
@@ -192,104 +206,26 @@ export const GraphViewer = forwardRef((props, ref) => {
         ...style
       }}
     >
-      {/* Toolbar */}
+      {/* Enhanced Toolbar with Search */}
       {showToolbar && (
-        <Paper elevation={0} sx={{ borderBottom: '1px solid #e0e0e0' }}>
-          <Toolbar variant="dense" sx={{ minHeight: 48 }}>
-            {toolbar || (
-              <>
-                <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                  ITM Graph ({nodes.length} nodes, {edges.length} edges)
-                </Typography>
-                
-                {/* Zoom Controls */}
-                <IconButton 
-                  size="small" 
-                  onClick={handleZoomIn}
-                  title="Zoom In"
-                  disabled={loading}
-                >
-                  <ZoomIn />
-                </IconButton>
-                
-                <IconButton 
-                  size="small" 
-                  onClick={handleZoomOut}
-                  title="Zoom Out"
-                  disabled={loading}
-                >
-                  <ZoomOut />
-                </IconButton>
-                
-                <IconButton 
-                  size="small" 
-                  onClick={handleFit}
-                  title="Fit to View"
-                  disabled={loading}
-                >
-                  <CenterFocusStrong />
-                </IconButton>
-                
-                {/* Layout Controls */}
-                <IconButton 
-                  size="small" 
-                  onClick={handleLayoutMenuOpen}
-                  title="Change Layout"
-                  disabled={loading}
-                >
-                  <AccountTree />
-                </IconButton>
-                
-                {/* Action Controls */}
-                <IconButton 
-                  size="small" 
-                  onClick={handleRefresh}
-                  title="Refresh"
-                  disabled={loading}
-                >
-                  <Refresh />
-                </IconButton>
-                
-                <IconButton 
-                  size="small" 
-                  onClick={handleExport}
-                  title="Export Image"
-                  disabled={loading}
-                >
-                  <GetApp />
-                </IconButton>
-              </>
-            )}
-          </Toolbar>
-        </Paper>
+        toolbar || (
+          <GraphViewerToolbar
+            nodes={nodes}
+            edges={edges}
+            config={config}
+            selection={selection}
+            loading={loading}
+            onEvent={handleEnhancedEvent}
+            onSearch={handleSearch}
+            searchValue={searchValue}
+            searchResults={searchResults}
+            performanceMetrics={performanceMetrics}
+            showTitle={true}
+            showSearch={true}
+            showMetrics={showMetrics}
+          />
+        )
       )}
-
-      {/* Layout Selection Menu */}
-      <Menu
-        anchorEl={layoutMenuAnchor}
-        open={Boolean(layoutMenuAnchor)}
-        onClose={handleLayoutMenuClose}
-        PaperProps={{
-          elevation: 3,
-          sx: { mt: 1 }
-        }}
-      >
-        {layoutOptions.map((option) => (
-          <MenuItem 
-            key={option.type}
-            onClick={() => handleLayoutChange(option.type)}
-            selected={config.layout === option.type}
-          >
-            <ListItemIcon>
-              {option.icon}
-            </ListItemIcon>
-            <ListItemText 
-              primary={option.label}
-              secondary={option.description}
-            />
-          </MenuItem>
-        ))}
-      </Menu>
 
       {/* Error Display */}
       {error && (

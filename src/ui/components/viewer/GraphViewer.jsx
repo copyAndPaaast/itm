@@ -4,13 +4,15 @@
  * Clean component focused only on rendering with V1 styling system
  */
 
-import React, { useRef, useEffect, useCallback, forwardRef } from 'react'
+import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'react'
 import { Box, Paper } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import cytoscape from 'cytoscape'
 import dagre from 'cytoscape-dagre'
 import expandCollapse from 'cytoscape-expand-collapse'
 import { buildCytoscapeStyle } from '../../styles/GraphViewerStyles.js'
+import GraphViewerToolbar from './GraphViewerToolbar.jsx'
+import GraphSearchService from './GraphSearchService.js'
 
 // Register Cytoscape extensions
 cytoscape.use(dagre)
@@ -30,7 +32,12 @@ const GraphViewer = forwardRef(({
 }, ref) => {
   const containerRef = useRef(null)
   const cyRef = useRef(null)
+  const searchServiceRef = useRef(null)
   const theme = useTheme()
+  
+  // Search state
+  const [searchValue, setSearchValue] = useState('')
+  const [searchResults, setSearchResults] = useState([])
   
   // Use refs for stable callback references
   const onEventRef = useRef(onEvent)
@@ -41,6 +48,87 @@ const GraphViewer = forwardRef(({
   onEventRef.current = onEvent
   onCytoscapeReadyRef.current = onCytoscapeReady
   onNodesMoveRef.current = onNodesMove
+
+  /**
+   * Search functionality
+   */
+  const handleSearch = useCallback((query) => {
+    setSearchValue(query)
+    
+    if (searchServiceRef.current) {
+      if (query.trim()) {
+        const matches = searchServiceRef.current.searchHighlightAndFocus(query)
+        setSearchResults(matches)
+        console.log(`🔍 Search results: ${matches.length} nodes found`)
+      } else {
+        searchServiceRef.current.clearHighlight()
+        setSearchResults([])
+      }
+    }
+  }, [])
+
+  const handleToolbarEvent = useCallback((eventType, eventData) => {
+    switch (eventType) {
+      case 'search':
+        if (eventData.action === 'highlight') {
+          handleSearch(eventData.query)
+        } else if (eventData.action === 'clear') {
+          if (searchServiceRef.current) {
+            searchServiceRef.current.clearHighlight()
+          }
+          setSearchValue('')
+          setSearchResults([])
+        } else if (eventData.action === 'selectResult' && eventData.resultId) {
+          // Focus on specific search result
+          if (cyRef.current) {
+            const node = cyRef.current.getElementById(eventData.resultId)
+            if (node.length > 0) {
+              cyRef.current.center(node)
+              node.select()
+            }
+          }
+        }
+        break
+      case 'zoom':
+        if (cyRef.current) {
+          if (eventData.action === 'zoomIn') {
+            cyRef.current.zoom(cyRef.current.zoom() * (eventData.factor || 1.2))
+          } else if (eventData.action === 'zoomOut') {
+            cyRef.current.zoom(cyRef.current.zoom() * (eventData.factor || 0.8))
+          }
+        }
+        break
+      case 'layout':
+        if (cyRef.current) {
+          if (eventData.action === 'fit') {
+            cyRef.current.fit()
+          } else if (eventData.action === 'dagre') {
+            cyRef.current.layout({ name: 'dagre' }).run()
+          }
+        }
+        break
+      case 'refresh':
+        // Refresh the graph
+        if (cyRef.current) {
+          cyRef.current.layout({ name: 'dagre' }).run()
+        }
+        break
+      case 'export':
+        // Export functionality
+        if (cyRef.current) {
+          const png64 = cyRef.current.png()
+          const link = document.createElement('a')
+          link.download = 'graph.png'
+          link.href = png64
+          link.click()
+        }
+        break
+      default:
+        // Forward other events
+        onEventRef.current(eventType, eventData)
+        break
+    }
+  }, [handleSearch])
 
   /**
    * Setup interactive features: custom drag-to-connect system
@@ -475,6 +563,10 @@ const GraphViewer = forwardRef(({
     cyRef.current = cy
     console.log('GraphViewer: Cytoscape initialized successfully')
     
+    // Initialize search service
+    searchServiceRef.current = new GraphSearchService(cy)
+    console.log('🔍 Search service initialized')
+    
     // Setup node move listeners for hull auto-refresh
     
     cy.on('position', 'node', (event) => {
@@ -627,27 +719,54 @@ const GraphViewer = forwardRef(({
   }, [elements])
 
   return (
-    <Paper
-      elevation={2}
+    <Box
       sx={{
         width: '100%',
         height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         position: 'relative',
-        overflow: 'hidden',
         backgroundColor: '#fafafa',
+        border: '1px solid #e0e0e0',
+        borderRadius: 1,
         ...style
       }}
       {...props}
     >
-      <Box
-        ref={containerRef}
-        sx={{
-          width: '100%',
-          height: '100%',
-          position: 'relative'
-        }}
+      {/* Toolbar */}
+      <GraphViewerToolbar
+        nodeCount={elements.filter(el => el.group === 'nodes').length}
+        edgeCount={elements.filter(el => el.group === 'edges').length}
+        loading={false}
+        onEvent={handleToolbarEvent}
+        onSearch={handleSearch}
+        searchValue={searchValue}
+        searchResults={searchResults}
+        showTitle={true}
+        showSearch={true}
+        showMetrics={true}
       />
-    </Paper>
+
+      {/* Graph Container */}
+      <Paper
+        elevation={0}
+        sx={{
+          flex: 1,
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundColor: '#fff'
+        }}
+      >
+        <Box
+          ref={containerRef}
+          sx={{
+            width: '100%',
+            height: '100%',
+            position: 'relative'
+          }}
+        />
+      </Paper>
+    </Box>
   )
 })
 
