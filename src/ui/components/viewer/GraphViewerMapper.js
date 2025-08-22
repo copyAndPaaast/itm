@@ -76,19 +76,87 @@ export class GraphViewerMapper {
   }
 
   /**
-   * Create node elements
+   * Create node elements (with multi-system support)
    */
   createNodes(nodes, elements) {
     nodes.forEach(node => {
       const businessId = node.nodeId
-      const displayId = this.generateDisplayId('node')
+      const systems = node.systems || []
       
-      // Find parent system compound
-      let parentId = null
-      if (node.systems && node.systems.length > 0) {
-        // Use first system as parent
-        parentId = this.systemCompounds.get(node.systems[0])
+      if (systems.length <= 1) {
+        // Single system or no system - create single instance
+        this.createSingleNodeInstance(node, elements)
+      } else {
+        // Multi-system asset - create display instance for each system
+        this.createMultiSystemNodeInstances(node, elements)
       }
+    })
+  }
+
+  /**
+   * Create single node instance (standard case)
+   */
+  createSingleNodeInstance(node, elements) {
+    const businessId = node.nodeId
+    const displayId = this.generateDisplayId('node')
+    
+    // Find parent system compound
+    let parentId = null
+    if (node.systems && node.systems.length > 0) {
+      parentId = this.systemCompounds.get(node.systems[0])
+    }
+
+    const nodeElement = {
+      group: 'nodes',
+      data: {
+        id: displayId,
+        label: node.title || `Node ${businessId}`,
+        originalNodeId: businessId,
+        
+        // Classification data
+        assetClass: node.assetClass || 'default',
+        type: this.mapAssetClassToType(node.assetClass),
+        
+        // Custom styling data (if provided)
+        color: node.color,
+        borderColor: node.borderColor,  
+        shape: node.shape,
+        size: node.size,
+        
+        // Membership data
+        systems: node.systems || [],
+        groups: node.groups || [],
+        
+        // Additional data
+        properties: node.properties || {},
+        
+        // Single system instance
+        isMultiSystemAsset: false,
+        systemContext: node.systems?.[0] || null
+      }
+    }
+
+    // Set parent if in system
+    if (parentId) {
+      nodeElement.data.parent = parentId
+    }
+
+    elements.push(nodeElement)
+    this.nodeMapping.set(businessId, displayId)
+  }
+
+  /**
+   * Create multiple display instances for multi-system assets
+   */
+  createMultiSystemNodeInstances(node, elements) {
+    const businessId = node.nodeId
+    const systems = node.systems
+    const displayIds = []
+
+    // Create display instance for each system
+    systems.forEach(systemName => {
+      const displayId = this.generateDisplayId(`multi_${businessId}_${systemName}`)
+      const parentId = this.systemCompounds.get(systemName)
 
       const nodeElement = {
         group: 'nodes',
@@ -108,59 +176,224 @@ export class GraphViewerMapper {
           size: node.size,
           
           // Membership data
-          systems: node.systems || [],
+          systems: [systemName], // Each instance belongs to one system context
           groups: node.groups || [],
           
           // Additional data
-          properties: node.properties || {}
+          properties: node.properties || {},
+          
+          // Multi-system instance metadata
+          isMultiSystemAsset: true,
+          systemContext: systemName,
+          multiSystemGroup: businessId, // Link all instances together
+          
+          // Visual styling for multi-system assets
+          borderStyle: 'dashed' // Special styling for multi-system instances
         }
       }
 
-      // Set parent if in system
+      // Set parent system compound
       if (parentId) {
         nodeElement.data.parent = parentId
       }
 
       elements.push(nodeElement)
-      this.nodeMapping.set(businessId, displayId)
+      displayIds.push(displayId)
+    })
+
+    // Create mapping entry for each system context
+    systems.forEach((systemName, index) => {
+      const key = `${businessId}_${systemName}`
+      this.nodeMapping.set(key, displayIds[index])
+    })
+    
+    // Also create primary mapping (for backward compatibility)
+    this.nodeMapping.set(businessId, displayIds[0])
+
+    // Create dashed connection edges between instances
+    this.createMultiSystemConnectionEdges(businessId, displayIds, elements)
+  }
+
+  /**
+   * Create dashed edges connecting multi-system asset instances
+   */
+  createMultiSystemConnectionEdges(businessId, displayIds, elements) {
+    // Create edges between all pairs of instances
+    for (let i = 0; i < displayIds.length - 1; i++) {
+      for (let j = i + 1; j < displayIds.length; j++) {
+        const edgeId = `multi_system_connection_${businessId}_${i}_${j}`
+        
+        const connectionEdge = {
+          group: 'edges',
+          data: {
+            id: edgeId,
+            source: displayIds[i],
+            target: displayIds[j],
+            label: 'Multi System Asset',
+            
+            // Classification
+            relationshipType: 'MULTI_SYSTEM_ASSET',
+            type: 'multi_system_connection',
+            
+            // Visual styling
+            lineStyle: 'dashed',
+            color: '#ffcccb', // Light red
+            
+            // Metadata
+            isMultiSystemConnection: true,
+            originalNodeId: businessId
+          },
+          classes: 'multi-system-edge'
+        }
+
+        elements.push(connectionEdge)
+      }
+    }
+  }
+
+  /**
+   * Create edge elements (with multi-system support)
+   */
+  createEdges(edges, elements) {
+    edges.forEach(edge => {
+      // Handle multi-system edge routing
+      this.createEdgeWithSystemContext(edge, elements)
     })
   }
 
   /**
-   * Create edge elements
+   * Create edge with proper system context routing
    */
-  createEdges(edges, elements) {
-    edges.forEach(edge => {
-      const sourceDisplayId = this.nodeMapping.get(edge.source)
-      const targetDisplayId = this.nodeMapping.get(edge.target)
-
-      if (sourceDisplayId && targetDisplayId) {
-        const edgeElement = {
-          group: 'edges',
-          data: {
-            id: edge.id,
-            source: sourceDisplayId,
-            target: targetDisplayId,
-            label: edge.relationshipType || '',
-            
-            // Classification
-            relationshipType: edge.relationshipType,
-            type: edge.relationshipType || 'default',
-            
-            // Custom styling (if provided)
-            color: edge.color,
-            width: edge.width,
-            style: edge.style,
-            arrowShape: edge.arrowShape,
-            
-            // Additional data
-            properties: edge.properties || {}
-          }
+  createEdgeWithSystemContext(edge, elements) {
+    const sourceBusinessId = edge.source
+    const targetBusinessId = edge.target
+    
+    // Get all possible display instances for source and target
+    const sourceCandidates = this.getDisplayInstances(sourceBusinessId)
+    const targetCandidates = this.getDisplayInstances(targetBusinessId)
+    
+    if (sourceCandidates.length === 0 || targetCandidates.length === 0) {
+      console.warn(`Cannot create edge ${edge.id}: missing display instances`)
+      return
+    }
+    
+    // Determine which instances to connect based on relationship type and system context
+    const connections = this.determineEdgeConnections(
+      edge, 
+      sourceCandidates, 
+      targetCandidates
+    )
+    
+    // Create edge for each valid connection
+    connections.forEach((connection, index) => {
+      const edgeId = connections.length > 1 ? `${edge.id}_${index}` : edge.id
+      
+      const edgeElement = {
+        group: 'edges',
+        data: {
+          id: edgeId,
+          source: connection.sourceDisplayId,
+          target: connection.targetDisplayId,
+          label: edge.relationshipType || '',
+          
+          // Classification
+          relationshipType: edge.relationshipType,
+          type: edge.relationshipType || 'default',
+          
+          // Custom styling (if provided)
+          color: edge.color,
+          width: edge.width,
+          style: edge.style,
+          arrowShape: edge.arrowShape,
+          
+          // System context metadata
+          systemContext: connection.systemContext,
+          
+          // Additional data
+          properties: edge.properties || {}
         }
-
-        elements.push(edgeElement)
       }
+
+      elements.push(edgeElement)
     })
+  }
+
+  /**
+   * Get all display instances for a business node ID
+   */
+  getDisplayInstances(businessId) {
+    const instances = []
+    
+    // Check primary mapping
+    const primaryId = this.nodeMapping.get(businessId)
+    if (primaryId) {
+      instances.push({
+        displayId: primaryId,
+        businessId: businessId,
+        systemContext: null // Will be determined from elements
+      })
+    }
+    
+    // Check system-specific mappings for multi-system nodes
+    for (const [key, displayId] of this.nodeMapping.entries()) {
+      // Ensure key is a string before calling startsWith
+      const keyStr = String(key)
+      const businessIdStr = String(businessId)
+      
+      if (keyStr.startsWith(`${businessIdStr}_`) && keyStr !== businessIdStr) {
+        const systemName = keyStr.substring(`${businessIdStr}_`.length)
+        instances.push({
+          displayId: displayId,
+          businessId: businessId,
+          systemContext: systemName
+        })
+      }
+    }
+    
+    return instances
+  }
+
+  /**
+   * Determine which display instances should be connected
+   */
+  determineEdgeConnections(edge, sourceCandidates, targetCandidates) {
+    const connections = []
+    
+    // Strategy 1: If both nodes are single-system, connect directly
+    if (sourceCandidates.length === 1 && targetCandidates.length === 1) {
+      connections.push({
+        sourceDisplayId: sourceCandidates[0].displayId,
+        targetDisplayId: targetCandidates[0].displayId,
+        systemContext: sourceCandidates[0].systemContext || targetCandidates[0].systemContext
+      })
+      return connections
+    }
+    
+    // Strategy 2: Connect instances that share the same system context
+    sourceCandidates.forEach(source => {
+      targetCandidates.forEach(target => {
+        if (source.systemContext && target.systemContext && 
+            source.systemContext === target.systemContext) {
+          connections.push({
+            sourceDisplayId: source.displayId,
+            targetDisplayId: target.displayId,
+            systemContext: source.systemContext
+          })
+        }
+      })
+    })
+    
+    // Strategy 3: If no shared system context, connect first instances
+    // (This handles cases where relationship spans systems)
+    if (connections.length === 0) {
+      connections.push({
+        sourceDisplayId: sourceCandidates[0].displayId,
+        targetDisplayId: targetCandidates[0].displayId,
+        systemContext: 'cross_system'
+      })
+    }
+    
+    return connections
   }
 
   /**

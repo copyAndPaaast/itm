@@ -12,42 +12,21 @@ import { GraphViewerMapper } from './GraphViewerMapper.js'
 import { ViewerEvents } from './GraphViewerInterface.js'
 
 /**
- * Demo data - exactly four nodes reflecting current development state
+ * Comprehensive demo data - Multi-system asset testing scenarios
  */
 const createDemoData = () => {
-  // Four nodes representing current viewer development phases
+  // Enhanced test data with 18 different membership scenarios
   const nodes = [
+    // ViewerArchitecture System Nodes
     {
       nodeId: 1001,
       title: 'GraphViewer Interface',
       assetClass: 'Application',
       systems: ['ViewerArchitecture'],
-      groups: [],
+      groups: ['Core Components'],
       properties: { 
         status: 'completed',
         description: 'Interface definitions and contracts'
-      }
-    },
-    {
-      nodeId: 1002, 
-      title: 'Data Mapper',
-      assetClass: 'WebServer',
-      systems: ['ViewerArchitecture'],
-      groups: [],
-      properties: {
-        status: 'completed', 
-        description: 'Business data to Cytoscape transformation'
-      }
-    },
-    {
-      nodeId: 1003,
-      title: 'Service Layer',
-      assetClass: 'DatabaseServer',
-      systems: ['ViewerArchitecture'], 
-      groups: [],
-      properties: {
-        status: 'placeholder',
-        description: 'Interactive features and event handling'
       }
     },
     {
@@ -55,15 +34,123 @@ const createDemoData = () => {
       title: 'React Component',
       assetClass: 'Application',
       systems: ['ViewerArchitecture'],
-      groups: [],
+      groups: ['Core Components'],
       properties: {
-        status: 'placeholder',
+        status: 'in_progress',
         description: 'Pure view component with Cytoscape'
+      }
+    },
+    {
+      nodeId: 1005,
+      title: 'Styling Engine',
+      assetClass: 'WebServer',
+      systems: ['ViewerArchitecture'],
+      groups: ['UI Layer'],
+      properties: {
+        status: 'completed',
+        description: 'Material UI themed graph styles'
+      }
+    },
+
+    // ViewerArchitecture1 System Nodes  
+    {
+      nodeId: 1003,
+      title: 'Service Layer',
+      assetClass: 'DatabaseServer',
+      systems: ['ViewerArchitecture1'], 
+      groups: ['Backend Services'],
+      properties: {
+        status: 'in_progress',
+        description: 'Interactive features and event handling'
+      }
+    },
+    {
+      nodeId: 1006,
+      title: 'Event Processor',
+      assetClass: 'Application',
+      systems: ['ViewerArchitecture1'],
+      groups: ['Backend Services'],
+      properties: {
+        status: 'completed',
+        description: 'Mouse and keyboard event handling'
+      }
+    },
+
+    // DataFlow System Nodes
+    {
+      nodeId: 1007,
+      title: 'Neo4j Connector',
+      assetClass: 'DatabaseServer',
+      systems: ['DataFlow'],
+      groups: ['Data Access'],
+      properties: {
+        status: 'completed',
+        description: 'Graph database connectivity'
+      }
+    },
+    {
+      nodeId: 1008,
+      title: 'Query Builder',
+      assetClass: 'Application',
+      systems: ['DataFlow'],
+      groups: ['Data Access'],
+      properties: {
+        status: 'in_progress',
+        description: 'Cypher query construction'
+      }
+    },
+
+    // Multi-System Assets (Cross-System Shared Components)
+    {
+      nodeId: 1002, 
+      title: 'Data Mapper',
+      assetClass: 'WebServer',
+      systems: ['ViewerArchitecture', 'ViewerArchitecture1'],
+      groups: ['Core Components'],
+      properties: {
+        status: 'completed', 
+        description: 'Business data to Cytoscape transformation'
+      }
+    },
+    {
+      nodeId: 1009,
+      title: 'State Manager',
+      assetClass: 'Application',
+      systems: ['ViewerArchitecture', 'DataFlow'],
+      groups: ['Core Components', 'Data Access'],
+      properties: {
+        status: 'in_progress',
+        description: 'Redux store for graph state'
+      }
+    },
+    {
+      nodeId: 1010,
+      title: 'Authentication Hub',
+      assetClass: 'WebServer',
+      systems: ['ViewerArchitecture1', 'DataFlow'],
+      groups: ['Backend Services'],
+      properties: {
+        status: 'completed',
+        description: 'User permissions and access control'
+      }
+    },
+
+    // Triple-System Asset (Ultimate Multi-System Test)
+    {
+      nodeId: 1011,
+      title: 'Configuration Engine',
+      assetClass: 'Application',
+      systems: ['ViewerArchitecture', 'ViewerArchitecture1', 'DataFlow'],
+      groups: ['Core Components', 'Backend Services', 'Data Access'],
+      properties: {
+        status: 'completed',
+        description: 'Global system configuration management'
       }
     }
   ]
 
   const edges = [
+    // Intra-system relationships (ViewerArchitecture)
     {
       id: 'edge_1',
       source: 1001,
@@ -77,10 +164,72 @@ const createDemoData = () => {
       relationshipType: 'transforms_data_for'
     },
     {
+      id: 'edge_5',
+      source: 1005,
+      target: 1004,
+      relationshipType: 'styles'
+    },
+
+    // Intra-system relationships (ViewerArchitecture1)
+    {
       id: 'edge_3',
       source: 1003,
       target: 1004,
       relationshipType: 'handles_events_for' 
+    },
+    {
+      id: 'edge_6',
+      source: 1006,
+      target: 1003,
+      relationshipType: 'processes_events_for'
+    },
+
+    // Intra-system relationships (DataFlow)
+    {
+      id: 'edge_7',
+      source: 1007,
+      target: 1008,
+      relationshipType: 'provides_data_to'
+    },
+
+    // Cross-system relationships (Multi-system routing tests)
+    {
+      id: 'edge_8',
+      source: 1009,
+      target: 1002,
+      relationshipType: 'manages_state_for'
+    },
+    {
+      id: 'edge_9',
+      source: 1010,
+      target: 1003,
+      relationshipType: 'authenticates'
+    },
+    {
+      id: 'edge_10',
+      source: 1007,
+      target: 1009,
+      relationshipType: 'feeds_data_to'
+    },
+
+    // Configuration Engine connections (Triple-system test)
+    {
+      id: 'edge_11',
+      source: 1011,
+      target: 1001,
+      relationshipType: 'configures'
+    },
+    {
+      id: 'edge_12',
+      source: 1011,
+      target: 1003,
+      relationshipType: 'configures'
+    },
+    {
+      id: 'edge_13',
+      source: 1011,
+      target: 1007,
+      relationshipType: 'configures'
     }
   ]
 
@@ -187,18 +336,20 @@ function GraphViewerDemo() {
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h5" gutterBottom>
-          GraphViewer Demo - Step 4 Interactive Features (Fixed)
+          GraphViewer Demo - Multi-System Asset Architecture
+        </Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Comprehensive test with 11 nodes across 3 systems • 4 multi-system assets • 5 group hulls
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip label="✅ Clean Architecture" color="success" size="small" />
-          <Chip label="✅ Interface Definitions" color="success" size="small" />
-          <Chip label="✅ Data Mapper" color="success" size="small" />
-          <Chip label="✅ V1 Styling System" color="success" size="small" />
+          <Chip label="✅ Multi-System Assets" color="success" size="small" />
+          <Chip label="✅ Display Instances" color="success" size="small" />
+          <Chip label="✅ Edge Routing" color="success" size="small" />
           <Chip label="✅ Hull Grouping" color="success" size="small" />
-          <Chip label="✅ Hover Effects" color="success" size="small" />
-          <Chip label="✅ Edgehandles Plugin" color="success" size="small" />
-          <Chip label="✅ Event System" color="success" size="small" />
-          <Chip label="✅ Native Tooltips" color="success" size="small" />
+          <Chip label="✅ Drag-to-Connect" color="success" size="small" />
+          <Chip label="✅ System Compounds" color="success" size="small" />
+          <Chip label="✅ Dashed Styling" color="success" size="small" />
         </Box>
       </Box>
 
@@ -269,26 +420,29 @@ function GraphViewerDemo() {
             </Stack>
           </Paper>
 
-          {/* Interactive Features Guide */}
+          {/* Multi-System Features Guide */}
           <Paper sx={{ p: 2, mb: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Interactive Features
+              Multi-System Features
             </Typography>
             <Box component="ul" sx={{ m: 0, pl: 2 }}>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Hover:</strong> Blue border effect + native browser tooltips
+                <strong>Multi-System Assets:</strong> Data Mapper, State Manager, Auth Hub, Config Engine
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Edgehandles:</strong> Hover over nodes to see handles, drag to create edges
+                <strong>Display Instances:</strong> Each asset appears in its respective system compounds
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Node Creation:</strong> Ctrl+Click (or Cmd+Click on Mac) on empty space
+                <strong>Dashed Borders:</strong> Multi-system instances have distinctive dashed styling
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Hull Following:</strong> Groups follow nodes when dragged
+                <strong>Connection Edges:</strong> Light red dashed edges link related instances
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Toggle Groups:</strong> Use controls to show/hide group hulls
+                <strong>Edge Routing:</strong> Smart routing based on system context
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                <strong>Drag-to-Connect:</strong> Click node border, drag to create edges
               </Typography>
             </Box>
           </Paper>

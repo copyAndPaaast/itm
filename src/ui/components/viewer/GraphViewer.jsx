@@ -133,7 +133,15 @@ const GraphViewer = forwardRef(({
     // Create temporary edge during drag
     cy.on('mousemove', (event) => {
       if (isDragging && dragStartNode && (userPermissions === 'editor' || userPermissions === 'admin')) {
-        // Remove previous temp edge
+        // Ensure dragStartNode still exists in the graph
+        if (!cy.getElementById(dragStartNode.id()).length) {
+          console.warn('Drag source node no longer exists, canceling drag')
+          isDragging = false
+          dragStartNode = null
+          return
+        }
+
+        // Remove previous temp elements
         cy.elements('.temp-edge').remove()
         cy.elements('.temp-node').remove()
 
@@ -141,27 +149,36 @@ const GraphViewer = forwardRef(({
         const tempNodeId = `temp-target-${timestamp}`
         const tempEdgeId = `temp-edge-${timestamp}`
 
-        // Create temporary target node
-        cy.add({
-          group: 'nodes',
-          data: { 
-            id: tempNodeId,
-            label: 'temp-target'
-          },
-          position: { x: event.position.x, y: event.position.y },
-          classes: 'temp-node'
-        })
+        try {
+          // Create temporary target node
+          const tempNode = cy.add({
+            group: 'nodes',
+            data: { 
+              id: tempNodeId,
+              label: 'temp-target'
+            },
+            position: { x: event.position.x, y: event.position.y },
+            classes: 'temp-node'
+          })
 
-        // Create temporary edge
-        tempEdge = cy.add({
-          group: 'edges',
-          data: {
-            id: tempEdgeId,
-            source: dragStartNode.id(),
-            target: tempNodeId
-          },
-          classes: 'temp-edge'
-        })
+          // Create temporary edge only if both nodes exist
+          if (cy.getElementById(dragStartNode.id()).length && cy.getElementById(tempNodeId).length) {
+            tempEdge = cy.add({
+              group: 'edges',
+              data: {
+                id: tempEdgeId,
+                source: dragStartNode.id(),
+                target: tempNodeId
+              },
+              classes: 'temp-edge'
+            })
+          }
+        } catch (error) {
+          console.warn('Error creating temp elements:', error)
+          // Clean up on error
+          cy.elements('.temp-edge').remove()
+          cy.elements('.temp-node').remove()
+        }
       }
     })
 
@@ -180,6 +197,13 @@ const GraphViewer = forwardRef(({
           
           if (targetNode !== cy && targetNode.isNode() && !targetNode.hasClass('temp-node') && 
               !targetNode.hasClass('group-hull') && !targetNode.data('isCompound')) {
+            
+            // Prevent self-loops (same source and target)
+            if (targetNode.id() === dragStartNode.id()) {
+              console.log('🚫 Preventing self-loop creation')
+              return
+            }
+            
             // Connect to existing node
             console.log('✅ Creating edge between nodes')
             const edgeId = `edge_${dragStartNode.id()}_${targetNode.id()}_${Date.now()}`

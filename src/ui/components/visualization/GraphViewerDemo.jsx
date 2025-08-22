@@ -57,7 +57,7 @@ const MOCK_NODES = [
     title: 'User Portal',
     assetClass: 'WebApplication',
     systems: ['Production'],
-    groups: ['Applications'],
+    groups: ['DatabaseCluster'],
     properties: {
       framework: 'React',
       version: '18.2.0'

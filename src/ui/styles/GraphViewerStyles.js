@@ -169,6 +169,31 @@ export const BASE_CYTOSCAPE_STYLE = [
       'z-index': 999
     }
   },
+  // Multi-system asset nodes - dashed borders
+  {
+    selector: 'node[isMultiSystemAsset = "true"]',
+    style: {
+      'border-style': 'dashed',
+      'border-width': 3,
+      'border-opacity': 0.8
+    }
+  },
+  // Multi-system connection edges - light red dashed
+  {
+    selector: 'edge.multi-system-edge',
+    style: {
+      'line-color': '#ffcccb',
+      'line-style': 'dashed', 
+      'line-opacity': 0.7,
+      'width': 2,
+      'target-arrow-color': '#ffcccb',
+      'target-arrow-shape': 'triangle',
+      'curve-style': 'bezier',
+      'text-rotation': 'autorotate',
+      'font-size': '10px',
+      'color': '#cc7a7a'
+    }
+  },
   // Custom drag-to-connect temp elements
   {
     selector: 'node.temp-node',
