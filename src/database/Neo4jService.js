@@ -1,11 +1,9 @@
 import neo4j from 'neo4j-driver'
-import dotenv from 'dotenv'
-
-dotenv.config()
 
 /**
  * Centralized Neo4j connection service implementing Singleton pattern
  * Provides database sessions to other services while managing connection lifecycle
+ * Browser-only implementation using Vite environment variables
  */
 export class Neo4jService {
   static instance = null
@@ -16,10 +14,10 @@ export class Neo4jService {
     }
 
     this.driver = neo4j.driver(
-      process.env.NEO4J_URI,
-      neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
+      import.meta.env.VITE_NEO4J_URI,
+      neo4j.auth.basic(import.meta.env.VITE_NEO4J_USERNAME, import.meta.env.VITE_NEO4J_PASSWORD)
     )
-    this.database = process.env.NEO4J_DATABASE || 'neo4j'
+    this.database = import.meta.env.VITE_NEO4J_DATABASE || 'neo4j'
     this.isConnected = false
     this.sessionCount = 0
 
@@ -136,7 +134,7 @@ export class Neo4jService {
       isConnected: this.isConnected,
       activeSessions: this.sessionCount,
       databaseName: this.database,
-      neo4jUri: process.env.NEO4J_URI
+      neo4jUri: import.meta.env.VITE_NEO4J_URI
     }
   }
 

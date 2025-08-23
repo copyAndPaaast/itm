@@ -35,14 +35,14 @@ const MainLayout = ({ children }) => {
     // Show status feedback for layout reset
     dispatch(setLoading('Resetting layout...'))
     
-    // Reset main layout (left: 20%, middle: 60%, right: 20%)
+    // Reset main layout (left: 20%, middle: 80%, right: 0%)
     if (mainLayoutRef.current) {
-      mainLayoutRef.current.setLayout([20, 60, 20])
+      mainLayoutRef.current.setLayout([20, 80, 0])
     }
     
-    // Reset middle column (actions: 15%, viewer: 60%, table: 25%)
+    // Reset middle column (actions: 15%, viewer: 85%, table: 0%)
     if (middleColumnRef.current) {
-      middleColumnRef.current.setLayout([15, 60, 25])
+      middleColumnRef.current.setLayout([15, 85, 0])
     }
     
     // Show success feedback
@@ -102,7 +102,7 @@ const MainLayout = ({ children }) => {
           <PanelResizeHandle style={styles.resizeHandle.horizontal} />
 
           {/* Middle Column - Actions, Viewer, Table */}
-          <Panel minSize={30}>
+          <Panel minSize={30} defaultSize={80}>
             <Box sx={styles.middleColumnContainer}>
               <PanelGroup direction="vertical" autoSaveId="middle-column" ref={middleColumnRef}>
                 {/* Top Actions Section */}
@@ -200,7 +200,7 @@ const MainLayout = ({ children }) => {
           {/* Right Panel - Properties Panel */}
           <Panel 
             defaultSize={0} 
-            minSize={15} 
+            minSize={0} 
             maxSize={40}
             collapsible={true}
             id="properties-panel"
