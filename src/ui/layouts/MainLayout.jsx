@@ -177,10 +177,9 @@ const MainLayout = ({ children }) => {
 
                 {/* Bottom Table Section */}
                 <Panel 
-                  defaultSize={25} 
+                  defaultSize={0} 
                   minSize={15}
                   collapsible={true}
-                  defaultCollapsed={true}
                   id="table-panel"
                 >
                   <Paper elevation={0} sx={styles.tablePanelPaper}>
@@ -200,11 +199,10 @@ const MainLayout = ({ children }) => {
 
           {/* Right Panel - Properties Panel */}
           <Panel 
-            defaultSize={20} 
+            defaultSize={0} 
             minSize={15} 
             maxSize={40}
             collapsible={true}
-            defaultCollapsed={true}
             id="properties-panel"
           >
             <Paper elevation={0} sx={styles.propertiesPanelPaper}>
