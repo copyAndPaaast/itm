@@ -180,6 +180,7 @@ const MainLayout = ({ children }) => {
                   defaultSize={25} 
                   minSize={15}
                   collapsible={true}
+                  defaultCollapsed={true}
                   id="table-panel"
                 >
                   <Paper elevation={0} sx={styles.tablePanelPaper}>
@@ -203,6 +204,7 @@ const MainLayout = ({ children }) => {
             minSize={15} 
             maxSize={40}
             collapsible={true}
+            defaultCollapsed={true}
             id="properties-panel"
           >
             <Paper elevation={0} sx={styles.propertiesPanelPaper}>
