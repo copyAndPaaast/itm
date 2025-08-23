@@ -7,10 +7,9 @@ import React from 'react'
 import { Provider } from 'react-redux'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { Box, AppBar, Toolbar, Typography, Container } from '@mui/material'
 
 import store from './store/index.js'
-import GraphViewerDemo from './components/viewer/GraphViewerDemo.jsx'
+import MainLayout from './layouts/MainLayout.jsx'
 
 /**
  * ITM application theme configuration
@@ -76,26 +75,7 @@ function App() {
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ flexGrow: 1, height: '100vh', display: 'flex', flexDirection: 'column' }}>
-          {/* Application Header */}
-          <AppBar position="static" elevation={2}>
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                ITM - IT Asset Management System
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                Graph Visualization Demo
-              </Typography>
-            </Toolbar>
-          </AppBar>
-
-          {/* Main Content Area */}
-          <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-            <Container maxWidth={false} sx={{ height: '100%', p: 0 }}>
-              <GraphViewerDemo />
-            </Container>
-          </Box>
-        </Box>
+        <MainLayout />
       </ThemeProvider>
     </Provider>
   )
