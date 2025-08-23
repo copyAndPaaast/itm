@@ -77,11 +77,24 @@ export const loadAllSystemsAction = () => async (dispatch) => {
 
   try {
     const systemService = new SystemService()
-    const systems = await systemService.getAllSystems()
+    const systemModels = await systemService.getAllSystems()
     
-    dispatch(setSystems(systems))
+    // Convert SystemModel instances to plain objects for Redux
+    const systemsPlainObjects = systemModels.map(system => ({
+      systemId: system.systemId,
+      systemName: system.systemName,
+      systemLabel: system.systemLabel,
+      description: system.description,
+      nodeCount: system.nodeCount,
+      properties: system.properties,
+      createdBy: system.createdBy,
+      createdDate: system.createdDate,
+      isActive: system.isActive
+    }))
     
-    return systems
+    dispatch(setSystems(systemsPlainObjects))
+    
+    return systemsPlainObjects
   } catch (error) {
     dispatch(setError({
       message: 'Failed to load systems',

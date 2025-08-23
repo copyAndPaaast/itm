@@ -10,7 +10,7 @@
  */
 
 import React, { useRef, useEffect } from 'react'
-import { Box, Button, Stack, Typography } from '@mui/material'
+import { Box, Button, Stack, Typography, Paper } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useDispatch, useSelector } from 'react-redux'
@@ -21,6 +21,7 @@ import Footer from '../components/layout/Footer/Footer.jsx'
 import ControlPanel from '../components/layout/ControlPanel/ControlPanel.jsx'
 import GraphViewer from '../components/viewer/GraphViewer.jsx'
 import SystemPropertiesForm from '../../system/SystemPropertiesForm.jsx'
+import SystemsList from '../../system/SystemsList.jsx'
 import { createMainLayoutStyles } from './MainLayoutStyles.js'
 
 const MainLayout = ({ children }) => {
@@ -131,7 +132,7 @@ const MainLayout = ({ children }) => {
             id="control-panel"
           >
             <ControlPanel
-              systemsComponent={null}
+              systemsComponent={<SystemsList />}
               nodesComponent={null}
               relationshipsComponent={null}
             />
