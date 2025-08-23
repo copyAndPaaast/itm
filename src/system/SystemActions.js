@@ -37,8 +37,21 @@ export const createSystemAction = (systemData) => async (dispatch) => {
     // Create system in database
     const createdSystem = await systemService.createSystem(systemData)
     
+    // Convert SystemModel to plain object for Redux
+    const systemPlainObject = {
+      systemId: createdSystem.systemId,
+      systemName: createdSystem.systemName,
+      systemLabel: createdSystem.systemLabel,
+      description: createdSystem.description,
+      nodeCount: createdSystem.nodeCount,
+      properties: createdSystem.properties,
+      createdBy: createdSystem.createdBy,
+      createdDate: createdSystem.createdDate,
+      isActive: createdSystem.isActive
+    }
+    
     // Update Redux store
-    dispatch(addSystem(createdSystem))
+    dispatch(addSystem(systemPlainObject))
     dispatch(setCurrentSystemId(createdSystem.systemId))
     dispatch(setVisibleSystems([createdSystem.systemId]))
     dispatch(clearSystemFormData())
