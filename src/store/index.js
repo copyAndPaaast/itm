@@ -55,7 +55,16 @@ export const store = configureStore({
     ]),
   
   // Enable Redux DevTools in development
-  devTools: process.env.NODE_ENV === 'development'
+  devTools: process.env.NODE_ENV === 'development' && {
+    // Filter out actions that are not from our application
+    actionSanitizer: (action) => {
+      // Hide actions that don't belong to our app
+      if (action.type && action.type.includes('databases/update')) {
+        return { ...action, type: '[FILTERED] ' + action.type }
+      }
+      return action
+    }
+  }
 })
 
 export default store

@@ -12,7 +12,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import store from '../store/index.js'
 import MainLayout from './layouts/MainLayout.jsx'
 import { DatabaseService } from './services/DatabaseService.js'
-import { setLoading, setSuccess, setError, setWarning } from '../store/statusSlice.js'
+import { setLoading, setSuccess, setError, setWarning, setIdle } from '../store/statusSlice.js'
 
 /**
  * ITM application theme configuration
@@ -78,7 +78,7 @@ function AppContent() {
 
   useEffect(() => {
     /**
-     * Perform database health check on app startup
+     * Perform single database connectivity check on app startup
      */
     const initializeDatabase = async () => {
       dispatch(setLoading('Connecting to database...'))
@@ -87,24 +87,11 @@ function AppContent() {
         const databaseService = DatabaseService.getInstance()
         const healthResult = await databaseService.performHealthCheck()
         
+        // Show result and clear status after a brief delay
         switch (healthResult.status) {
           case 'success':
             dispatch(setSuccess(healthResult.message))
-            // Start periodic health monitoring
-            databaseService.startHealthMonitoring(30000, (result) => {
-              // Only update status on significant changes to avoid spam
-              if (result.status === 'error') {
-                dispatch(setError({
-                  message: result.message,
-                  details: result.details
-                }))
-              } else if (result.status === 'warning') {
-                dispatch(setWarning({
-                  message: result.message, 
-                  details: result.details
-                }))
-              }
-            })
+            setTimeout(() => dispatch(setIdle('Ready')), 2000)
             break
             
           case 'warning':
@@ -131,14 +118,8 @@ function AppContent() {
       }
     }
 
-    // Run database check on app startup
+    // Run database check once on app startup
     initializeDatabase()
-
-    // Cleanup function
-    return () => {
-      const databaseService = DatabaseService.getInstance()
-      databaseService.stopHealthMonitoring()
-    }
   }, [dispatch])
 
   return <MainLayout />

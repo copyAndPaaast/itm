@@ -9,7 +9,7 @@
  * - Viewer section is fixed, other sections in middle column are resizable/collapsible
  */
 
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 import { Box, Button, Stack, Typography, Paper } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
@@ -19,6 +19,7 @@ import { startCreateSystem, selectIsCreatingSystem } from '../../store/systemSli
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
 import GraphViewer from '../components/viewer/GraphViewer.jsx'
+import SystemPropertiesForm from '../../system/SystemPropertiesForm.jsx'
 import { createMainLayoutStyles } from './MainLayoutStyles.js'
 
 const MainLayout = ({ children }) => {
@@ -74,6 +75,22 @@ const MainLayout = ({ children }) => {
       'Graph saved successfully'
     ))
   }
+
+  /**
+   * Auto-expand Properties Panel when system creation starts
+   */
+  useEffect(() => {
+    if (isCreatingSystem) {
+      console.log('🔧 Auto-expanding Properties Panel for system creation')
+      
+      // Expand Properties Panel to 30% when creating system
+      if (mainLayoutRef.current) {
+        mainLayoutRef.current.setLayout([20, 50, 30])
+      }
+      
+      dispatch(showTemporarySuccess('Properties Panel expanded for system creation'))
+    }
+  }, [isCreatingSystem, dispatch])
 
   /**
    * System management actions
@@ -195,14 +212,9 @@ const MainLayout = ({ children }) => {
             collapsible={true}
             id="properties-panel"
           >
-            <Paper elevation={0} sx={styles.propertiesPanelPaper}>
-              <Typography variant="h6" gutterBottom>
-                Properties Panel
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Right resizable/collapsible panel for properties
-              </Typography>
-            </Paper>
+            <Box sx={styles.propertiesPanelPaper}>
+              <SystemPropertiesForm />
+            </Box>
           </Panel>
         </PanelGroup>
       </Box>
