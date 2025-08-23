@@ -15,7 +15,7 @@ import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useDispatch, useSelector } from 'react-redux'
 import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../../store/statusSlice.js'
-import { startCreateSystem, selectIsCreatingSystem } from '../../store/systemSlice.js'
+import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem } from '../../store/systemSlice.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
 import GraphViewer from '../components/viewer/GraphViewer.jsx'
@@ -31,6 +31,7 @@ const MainLayout = ({ children }) => {
   
   // System state
   const isCreatingSystem = useSelector(selectIsCreatingSystem)
+  const isEditingSystem = useSelector(selectIsEditingSystem)
 
   /**
    * Reset all panels to their default sizes
@@ -77,20 +78,21 @@ const MainLayout = ({ children }) => {
   }
 
   /**
-   * Auto-expand Properties Panel when system creation starts
+   * Auto-expand Properties Panel when system creation or editing starts
    */
   useEffect(() => {
-    if (isCreatingSystem) {
-      console.log('🔧 Auto-expanding Properties Panel for system creation')
+    if (isCreatingSystem || isEditingSystem) {
+      const mode = isCreatingSystem ? 'creation' : 'editing'
+      console.log(`🔧 Auto-expanding Properties Panel for system ${mode}`)
       
-      // Expand Properties Panel to 30% when creating system
+      // Expand Properties Panel to 30% when creating or editing system
       if (mainLayoutRef.current) {
         mainLayoutRef.current.setLayout([20, 50, 30])
       }
       
-      dispatch(showTemporarySuccess('Properties Panel expanded for system creation'))
+      dispatch(showTemporarySuccess(`Properties Panel expanded for system ${mode}`))
     }
-  }, [isCreatingSystem, dispatch])
+  }, [isCreatingSystem, isEditingSystem, dispatch])
 
   /**
    * System management actions

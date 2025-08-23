@@ -20,13 +20,15 @@ import { useTheme } from '@mui/material/styles'
 import { useDispatch, useSelector } from 'react-redux'
 import { 
   selectSystemFormData, 
-  selectIsCreatingSystem, 
+  selectIsCreatingSystem,
+  selectIsEditingSystem, 
   selectError, 
   selectIsLoading,
   updateSystemFormData, 
   clearSystemFormData 
 } from '../store/systemSlice.js'
 import { createSystemAction } from './SystemActions.js'
+import { PermissionService } from '../user/PermissionService.js'
 
 /**
  * Create system properties form styles
@@ -71,6 +73,7 @@ const SystemPropertiesForm = () => {
   // Redux state
   const formData = useSelector(selectSystemFormData)
   const isCreatingSystem = useSelector(selectIsCreatingSystem)
+  const isEditingSystem = useSelector(selectIsEditingSystem)
   const error = useSelector(selectError)
   const isLoading = useSelector(selectIsLoading)
 
@@ -84,9 +87,9 @@ const SystemPropertiesForm = () => {
   }
 
   /**
-   * Handle save system
+   * Handle create system
    */
-  const handleSave = async () => {
+  const handleCreate = async () => {
     try {
       await dispatch(createSystemAction({
         systemName: formData.systemName,
@@ -97,6 +100,26 @@ const SystemPropertiesForm = () => {
     } catch (error) {
       console.error('Failed to create system:', error)
     }
+  }
+
+  /**
+   * Handle save system changes (edit mode)
+   */
+  const handleSave = async () => {
+    // TODO: Implement system update action
+    console.log('Save system changes:', formData)
+    // For now, just show success message
+    dispatch(clearSystemFormData())
+  }
+
+  /**
+   * Handle delete system
+   */
+  const handleDelete = async () => {
+    // TODO: Implement system delete action
+    console.log('Delete system:', formData)
+    // For now, just clear form
+    dispatch(clearSystemFormData())
   }
 
   /**
@@ -115,7 +138,7 @@ const SystemPropertiesForm = () => {
            /^[A-Za-z][A-Za-z0-9_]*$/.test(formData.systemLabel)
   }
 
-  if (!isCreatingSystem) {
+  if (!isCreatingSystem && !isEditingSystem) {
     return (
       <Box sx={styles.formContainer}>
         <Typography variant="body2" color="text.secondary">
@@ -125,15 +148,21 @@ const SystemPropertiesForm = () => {
     )
   }
 
+  const isEditing = isEditingSystem
+  const isCreating = isCreatingSystem
+
   return (
     <Paper elevation={0} sx={styles.formContainer}>
       {/* Form Header */}
       <Box sx={styles.formHeader}>
         <Typography variant="h6" gutterBottom>
-          Create New System
+          {isCreating ? 'Create New System' : 'Edit System'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Define a new system with its properties and configuration.
+          {isCreating 
+            ? 'Define a new system with its properties and configuration.'
+            : 'Modify the system properties and save changes.'
+          }
         </Typography>
       </Box>
 
@@ -199,14 +228,38 @@ const SystemPropertiesForm = () => {
           >
             Cancel
           </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSave}
-            disabled={!isFormValid() || isLoading}
-          >
-            {isLoading ? 'Creating...' : 'Create System'}
-          </Button>
+          
+          {isCreating && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleCreate}
+              disabled={!isFormValid() || isLoading || !PermissionService.checkPermission('create', 'editor')}
+            >
+              {isLoading ? 'Creating...' : 'Create System'}
+            </Button>
+          )}
+          
+          {isEditing && (
+            <>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDelete}
+                disabled={isLoading || !PermissionService.checkPermission('delete', 'editor')}
+              >
+                Delete
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSave}
+                disabled={!isFormValid() || isLoading || !PermissionService.checkPermission('edit', 'editor')}
+              >
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          )}
         </Stack>
       </Box>
     </Paper>

@@ -22,6 +22,7 @@ const initialState = {
   
   // System creation/editing workflow
   isCreatingSystem: false,
+  isEditingSystem: false,
   systemFormData: {
     systemName: '',
     systemLabel: '',
@@ -98,12 +99,33 @@ const systemSlice = createSlice({
      */
     startCreateSystem: (state) => {
       state.isCreatingSystem = true
+      state.isEditingSystem = false
       state.currentSystemId = null
       state.systemFormData = {
         systemName: '',
         systemLabel: '',
         description: '',
         properties: {}
+      }
+    },
+
+    /**
+     * Start editing an existing system
+     */
+    startEditSystem: (state, action) => {
+      const systemId = action.payload
+      const system = state.systems.find(s => s.systemId === systemId)
+      
+      if (system) {
+        state.isCreatingSystem = false
+        state.isEditingSystem = true
+        state.currentSystemId = systemId
+        state.systemFormData = {
+          systemName: system.systemName,
+          systemLabel: system.systemLabel,
+          description: system.description,
+          properties: system.properties || {}
+        }
       }
     },
 
@@ -122,6 +144,7 @@ const systemSlice = createSlice({
      */
     clearSystemFormData: (state) => {
       state.isCreatingSystem = false
+      state.isEditingSystem = false
       state.systemFormData = {
         systemName: '',
         systemLabel: '',
@@ -145,8 +168,17 @@ const systemSlice = createSlice({
         state.visibleSystemIds.push(system.systemId)
       }
       
-      // Clear creation mode
+      // Transition from creation to editing mode (keeps Properties Panel open)
       state.isCreatingSystem = false
+      state.isEditingSystem = true
+      
+      // Update form data with the created system for immediate editing
+      state.systemFormData = {
+        systemName: system.systemName,
+        systemLabel: system.systemLabel,
+        description: system.description,
+        properties: system.properties || {}
+      }
     },
 
     /**
@@ -217,6 +249,7 @@ export const {
   removeVisibleSystem,
   setSystemViewMode,
   startCreateSystem,
+  startEditSystem,
   updateSystemFormData,
   clearSystemFormData,
   addSystem,
@@ -234,6 +267,7 @@ export const selectCurrentSystemId = (state) => state.system.currentSystemId
 export const selectVisibleSystemIds = (state) => state.system.visibleSystemIds
 export const selectSystemViewMode = (state) => state.system.systemViewMode
 export const selectIsCreatingSystem = (state) => state.system.isCreatingSystem
+export const selectIsEditingSystem = (state) => state.system.isEditingSystem
 export const selectSystemFormData = (state) => state.system.systemFormData
 export const selectSystems = (state) => state.system.systems
 export const selectCurrentSystem = (state) => {
