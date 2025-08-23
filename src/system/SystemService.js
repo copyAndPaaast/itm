@@ -32,6 +32,9 @@ export class SystemService extends SystemInterface {
         throw new Error(`System with label '${systemLabel}' already exists`)
       }
 
+      // Serialize properties as JSON string for Neo4j storage
+      const propertiesJson = Object.keys(properties).length > 0 ? JSON.stringify(properties) : '{}'
+
       // Create system entity (ITM app internal node)
       const result = await session.run(
         `
@@ -39,7 +42,7 @@ export class SystemService extends SystemInterface {
           systemName: $systemName,
           systemLabel: $systemLabel,
           description: $description,
-          properties: $properties,
+          properties: $propertiesJson,
           nodeCount: 0,
           createdBy: 'user',
           createdDate: datetime(),
@@ -47,7 +50,7 @@ export class SystemService extends SystemInterface {
         })
         RETURN s, toString(id(s)) as systemId
         `,
-        { systemName, systemLabel, description, properties }
+        { systemName, systemLabel, description, propertiesJson }
       )
 
       if (result.records.length === 0) {

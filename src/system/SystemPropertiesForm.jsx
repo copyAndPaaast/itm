@@ -172,7 +172,7 @@ const SystemPropertiesForm = () => {
           required
           placeholder="e.g., ProductionSystem"
           helperText="Neo4j label for nodes (letters, numbers, underscore only)"
-          error={formData.systemLabel && !/^[A-Za-z][A-Za-z0-9_]*$/.test(formData.systemLabel)}
+          error={Boolean(formData.systemLabel && !/^[A-Za-z][A-Za-z0-9_]*$/.test(formData.systemLabel))}
           disabled={isLoading}
         />
 
