@@ -86,6 +86,40 @@ export const createControlPanelStyles = (theme) => ({
     minHeight: 120, // Ensure minimum space for components
     maxHeight: 300, // Prevent excessive height
     overflow: 'auto' // Allow scrolling if content is too long
+  },
+
+  // Action Icons Section
+  actionsContainer: {
+    padding: theme.spacing(1.5, 2),
+    backgroundColor: theme.palette.grey[25] || '#fafafa',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing(2)
+  },
+
+  actionButton: {
+    color: theme.palette.text.secondary,
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    padding: theme.spacing(1),
+    transition: theme.transitions.create(['color', 'background-color', 'border-color'], {
+      duration: theme.transitions.duration.short
+    }),
+
+    '&:hover': {
+      color: theme.palette.primary.main,
+      backgroundColor: theme.palette.primary.light + '20',
+      borderColor: theme.palette.primary.light,
+      transform: 'translateY(-1px)',
+      boxShadow: theme.shadows[2]
+    },
+
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: theme.shadows[1]
+    }
   }
 })
 

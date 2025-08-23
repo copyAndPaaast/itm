@@ -13,6 +13,7 @@ import store from '../store/index.js'
 import MainLayout from './layouts/MainLayout.jsx'
 import { DatabaseService } from './services/DatabaseService.js'
 import { setLoading, setSuccess, setError, setWarning, setIdle } from '../store/statusSlice.js'
+import { OverlayProvider } from './components/overlay/OverlayProvider.jsx'
 
 /**
  * ITM application theme configuration
@@ -122,7 +123,11 @@ function AppContent() {
     initializeDatabase()
   }, [dispatch])
 
-  return <MainLayout />
+  return (
+    <OverlayProvider>
+      <MainLayout />
+    </OverlayProvider>
+  )
 }
 
 /**

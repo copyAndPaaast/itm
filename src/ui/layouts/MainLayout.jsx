@@ -135,6 +135,7 @@ const MainLayout = ({ children }) => {
               systemsComponent={<SystemsList />}
               nodesComponent={null}
               relationshipsComponent={null}
+              userPermissions="editor" // TODO: Get from user context/Redux state
             />
           </Panel>
 
