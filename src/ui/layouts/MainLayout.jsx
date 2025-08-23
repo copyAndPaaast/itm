@@ -9,12 +9,33 @@
  * - Viewer section is fixed, other sections in middle column are resizable/collapsible
  */
 
-import React from 'react'
+import React, { useRef } from 'react'
 import { Box, AppBar, Toolbar, Typography, Paper, IconButton, Avatar } from '@mui/material'
-import { AccountCircle, Logout } from '@mui/icons-material'
+import { AccountCircle, Logout, ViewQuilt } from '@mui/icons-material'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 
 const MainLayout = ({ children }) => {
+  const mainLayoutRef = useRef(null)
+  const middleColumnRef = useRef(null)
+
+  /**
+   * Reset all panels to their default sizes
+   */
+  const resetLayout = () => {
+    console.log('🔄 Resetting layout to default sizes')
+    
+    // Reset main layout (left: 20%, middle: 60%, right: 20%)
+    if (mainLayoutRef.current) {
+      mainLayoutRef.current.setLayout([20, 60, 20])
+    }
+    
+    // Reset middle column (actions: 15%, viewer: 60%, table: 25%)
+    if (middleColumnRef.current) {
+      middleColumnRef.current.setLayout([15, 60, 25])
+    }
+    
+    console.log('✅ Layout reset complete')
+  }
   return (
     <Box sx={{ 
       height: '100vh', 
@@ -45,6 +66,14 @@ const MainLayout = ({ children }) => {
             <IconButton 
               size="small" 
               sx={{ color: 'inherit' }}
+              title="Reset Layout"
+              onClick={resetLayout}
+            >
+              <ViewQuilt fontSize="small" />
+            </IconButton>
+            <IconButton 
+              size="small" 
+              sx={{ color: 'inherit' }}
               title="User Profile"
             >
               <Avatar sx={{ width: 28, height: 28, fontSize: '14px' }}>
@@ -64,7 +93,7 @@ const MainLayout = ({ children }) => {
 
       {/* Main Content Area - Three Column Layout */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <PanelGroup direction="horizontal" autoSaveId="main-layout">
+        <PanelGroup direction="horizontal" autoSaveId="main-layout" ref={mainLayoutRef}>
           {/* Left Panel - Control Panel */}
           <Panel 
             defaultSize={20} 
@@ -98,7 +127,7 @@ const MainLayout = ({ children }) => {
           {/* Middle Column - Actions, Viewer, Table */}
           <Panel minSize={30}>
             <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <PanelGroup direction="vertical" autoSaveId="middle-column">
+              <PanelGroup direction="vertical" autoSaveId="middle-column" ref={middleColumnRef}>
                 {/* Top Actions Section */}
                 <Panel 
                   defaultSize={15} 
