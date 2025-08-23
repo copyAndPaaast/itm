@@ -20,7 +20,7 @@ import {
   selectIsAnimating,
   selectStatusDetails,
   StatusTypes
-} from '../../store/statusSlice.js'
+} from '../../../store/statusSlice.js'
 import {
   createStatusIndicatorStyles,
   createStatusTooltipStyles,

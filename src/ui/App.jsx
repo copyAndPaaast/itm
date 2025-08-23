@@ -9,10 +9,10 @@ import { Provider, useDispatch } from 'react-redux'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 
-import store from './store/index.js'
+import store from '../store/index.js'
 import MainLayout from './layouts/MainLayout.jsx'
 import { DatabaseService } from './services/DatabaseService.js'
-import { setLoading, setSuccess, setError, setWarning } from './store/statusSlice.js'
+import { setLoading, setSuccess, setError, setWarning } from '../store/statusSlice.js'
 
 /**
  * ITM application theme configuration

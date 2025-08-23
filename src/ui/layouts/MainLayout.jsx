@@ -13,8 +13,9 @@ import React, { useRef } from 'react'
 import { Box, Button, Stack, Typography, Paper } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
-import { useDispatch } from 'react-redux'
-import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../store/statusSlice.js'
+import { useDispatch, useSelector } from 'react-redux'
+import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../../store/statusSlice.js'
+import { startCreateSystem, selectIsCreatingSystem } from '../../store/systemSlice.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
 import GraphViewer from '../components/viewer/GraphViewer.jsx'
@@ -26,6 +27,9 @@ const MainLayout = ({ children }) => {
   const dispatch = useDispatch()
   const theme = useTheme()
   const styles = createMainLayoutStyles(theme)
+  
+  // System state
+  const isCreatingSystem = useSelector(selectIsCreatingSystem)
 
   /**
    * Reset all panels to their default sizes
@@ -69,6 +73,14 @@ const MainLayout = ({ children }) => {
       () => new Promise(resolve => setTimeout(resolve, 2000)), // Mock async operation
       'Graph saved successfully'
     ))
+  }
+
+  /**
+   * System management actions
+   */
+  const handleNewSystem = () => {
+    console.log('🚀 Starting new system creation')
+    dispatch(startCreateSystem())
   }
   return (
     <Box sx={styles.mainContainer}>
@@ -115,41 +127,24 @@ const MainLayout = ({ children }) => {
                   id="actions-panel"
                 >
                   <Paper elevation={0} sx={styles.actionsPanelPaper}>
-                    <Typography variant="h6" gutterBottom>
-                      Actions Panel
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Top resizable/collapsible section for various actions
-                    </Typography>
-                    
-                    {/* Status Testing Buttons (Development Only) */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <Box sx={styles.statusTestingContainer}>
-                        <Typography variant="caption" sx={styles.statusTestingLabel}>
-                          Status Testing:
-                        </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                          <Button size="small" variant="outlined" onClick={testStatusLoading}>
-                            Loading
-                          </Button>
-                          <Button size="small" variant="outlined" onClick={testStatusSuccess}>
-                            Success  
-                          </Button>
-                          <Button size="small" variant="outlined" onClick={testStatusError}>
-                            Error
-                          </Button>
-                          <Button size="small" variant="outlined" onClick={testStatusWarning}>
-                            Warning
-                          </Button>
-                          <Button size="small" variant="outlined" onClick={testStatusIdle}>
-                            Idle
-                          </Button>
-                          <Button size="small" variant="outlined" onClick={testAsyncOperation}>
-                            Async Op
-                          </Button>
-                        </Stack>
-                      </Box>
-                    )}
+                    {/* System Management Actions */}
+                    <Box sx={styles.systemActionsContainer}>
+                     
+                      <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                      <Typography variant="h6" gutterBottom>
+                        Actions Panel
+                      </Typography>
+                        <Button 
+                          variant="contained" 
+                          color="primary"
+                          size="small"
+                          onClick={handleNewSystem}
+                          disabled={isCreatingSystem}
+                        >
+                          {isCreatingSystem ? 'Creating System...' : 'New System'}
+                        </Button>
+                      </Stack>
+                    </Box>
                   </Paper>
                 </Panel>
 

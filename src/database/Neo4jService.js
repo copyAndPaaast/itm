@@ -12,7 +12,7 @@ export class Neo4jService {
     if (Neo4jService.instance) {
       return Neo4jService.instance
     }
-    debugger
+    
     this.driver = neo4j.driver(
       import.meta.env.VITE_NEO4J_URI,
       neo4j.auth.basic(import.meta.env.VITE_NEO4J_USERNAME, import.meta.env.VITE_NEO4J_PASSWORD)

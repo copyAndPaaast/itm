@@ -65,6 +65,24 @@ export const createMainLayoutStyles = (theme) => ({
   },
 
   /**
+   * System actions container
+   */
+  systemActionsContainer: {
+    mb: 2
+  },
+
+  /**
+   * System actions label
+   */
+  systemActionsLabel: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.caption.fontSize,
+    marginBottom: theme.spacing(1),
+    display: 'block',
+    fontWeight: 500
+  },
+
+  /**
    * Status testing container
    */
   statusTestingContainer: {

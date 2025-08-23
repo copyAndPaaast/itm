@@ -6,6 +6,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import graphViewerReducer from './graphViewerSlice.js'
 import statusReducer from './statusSlice.js'
+import systemReducer from './systemSlice.js'
 
 /**
  * Custom middleware for permission checking
@@ -36,7 +37,8 @@ const permissionMiddleware = (store) => (next) => (action) => {
 export const store = configureStore({
   reducer: {
     graphViewer: graphViewerReducer,
-    status: statusReducer
+    status: statusReducer,
+    system: systemReducer
   },
   
   middleware: (getDefaultMiddleware) =>
