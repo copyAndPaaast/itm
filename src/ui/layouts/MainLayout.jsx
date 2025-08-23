@@ -15,7 +15,7 @@ import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useDispatch, useSelector } from 'react-redux'
 import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../../store/statusSlice.js'
-import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem } from '../../store/systemSlice.js'
+import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem, selectCurrentSystemId } from '../../store/systemSlice.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
 import GraphViewer from '../components/viewer/GraphViewer.jsx'
@@ -32,6 +32,7 @@ const MainLayout = ({ children }) => {
   // System state
   const isCreatingSystem = useSelector(selectIsCreatingSystem)
   const isEditingSystem = useSelector(selectIsEditingSystem)
+  const currentSystemId = useSelector(selectCurrentSystemId)
 
   /**
    * Reset all panels to their default sizes
@@ -78,21 +79,28 @@ const MainLayout = ({ children }) => {
   }
 
   /**
-   * Auto-expand Properties Panel when system creation or editing starts
+   * Auto-expand Properties Panel when there's an active system or during creation
    */
   useEffect(() => {
-    if (isCreatingSystem || isEditingSystem) {
-      const mode = isCreatingSystem ? 'creation' : 'editing'
-      console.log(`🔧 Auto-expanding Properties Panel for system ${mode}`)
+    const hasActiveSystem = currentSystemId || isCreatingSystem || isEditingSystem
+    
+    if (hasActiveSystem) {
+      let mode = 'viewing'
+      if (isCreatingSystem) mode = 'creation'
+      else if (isEditingSystem) mode = 'editing'
       
-      // Expand Properties Panel to 30% when creating or editing system
+      console.log(`🔧 Auto-expanding Properties Panel for system ${mode} (systemId: ${currentSystemId})`)
+      
+      // Expand Properties Panel to 30% when there's an active system
       if (mainLayoutRef.current) {
         mainLayoutRef.current.setLayout([20, 50, 30])
       }
       
       dispatch(showTemporarySuccess(`Properties Panel expanded for system ${mode}`))
+    } else {
+      console.log('🔄 No active system, Properties Panel can be collapsed')
     }
-  }, [isCreatingSystem, isEditingSystem, dispatch])
+  }, [currentSystemId, isCreatingSystem, isEditingSystem, dispatch])
 
   /**
    * System management actions

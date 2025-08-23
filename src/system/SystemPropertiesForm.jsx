@@ -21,13 +21,16 @@ import { useDispatch, useSelector } from 'react-redux'
 import { 
   selectSystemFormData, 
   selectIsCreatingSystem,
-  selectIsEditingSystem, 
+  selectIsEditingSystem,
+  selectCurrentSystemId,
+  selectCurrentSystem,
   selectError, 
   selectIsLoading,
   updateSystemFormData, 
   clearSystemFormData 
 } from '../store/systemSlice.js'
 import { createSystemAction } from './SystemActions.js'
+import { startEditSystem } from '../store/systemSlice.js'
 import { PermissionService } from '../user/PermissionService.js'
 
 /**
@@ -74,6 +77,8 @@ const SystemPropertiesForm = () => {
   const formData = useSelector(selectSystemFormData)
   const isCreatingSystem = useSelector(selectIsCreatingSystem)
   const isEditingSystem = useSelector(selectIsEditingSystem)
+  const currentSystemId = useSelector(selectCurrentSystemId)
+  const currentSystem = useSelector(selectCurrentSystem)
   const error = useSelector(selectError)
   const isLoading = useSelector(selectIsLoading)
 
@@ -123,6 +128,15 @@ const SystemPropertiesForm = () => {
   }
 
   /**
+   * Handle edit system (viewing mode)
+   */
+  const handleEdit = () => {
+    if (currentSystemId) {
+      dispatch(startEditSystem(currentSystemId))
+    }
+  }
+
+  /**
    * Handle cancel creation
    */
   const handleCancel = () => {
@@ -138,7 +152,10 @@ const SystemPropertiesForm = () => {
            /^[A-Za-z][A-Za-z0-9_]*$/.test(formData.systemLabel)
   }
 
-  if (!isCreatingSystem && !isEditingSystem) {
+  // Show form if creating, editing, or has active system
+  const hasActiveSystem = currentSystemId || isCreatingSystem || isEditingSystem
+  
+  if (!hasActiveSystem) {
     return (
       <Box sx={styles.formContainer}>
         <Typography variant="body2" color="text.secondary">
@@ -150,18 +167,23 @@ const SystemPropertiesForm = () => {
 
   const isEditing = isEditingSystem
   const isCreating = isCreatingSystem
+  const isViewing = currentSystemId && !isCreatingSystem && !isEditingSystem
 
   return (
     <Paper elevation={0} sx={styles.formContainer}>
       {/* Form Header */}
       <Box sx={styles.formHeader}>
         <Typography variant="h6" gutterBottom>
-          {isCreating ? 'Create New System' : 'Edit System'}
+          {isCreating ? 'Create New System' : 
+           isEditing ? 'Edit System' : 
+           'System Properties'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {isCreating 
             ? 'Define a new system with its properties and configuration.'
-            : 'Modify the system properties and save changes.'
+            : isEditing
+            ? 'Modify the system properties and save changes.'
+            : `View and manage system: ${currentSystem?.systemName || 'Unknown System'}`
           }
         </Typography>
       </Box>
@@ -191,6 +213,9 @@ const SystemPropertiesForm = () => {
           placeholder="e.g., Production Environment"
           helperText="Human-readable name for the system"
           disabled={isLoading}
+          InputProps={{
+            readOnly: isViewing
+          }}
         />
 
         <TextField
@@ -203,6 +228,9 @@ const SystemPropertiesForm = () => {
           helperText="Neo4j label for nodes (letters, numbers, underscore only)"
           error={Boolean(formData.systemLabel && !/^[A-Za-z][A-Za-z0-9_]*$/.test(formData.systemLabel))}
           disabled={isLoading}
+          InputProps={{
+            readOnly: isViewing
+          }}
         />
 
         <TextField
@@ -215,6 +243,9 @@ const SystemPropertiesForm = () => {
           placeholder="Describe the purpose and scope of this system..."
           helperText="Optional description of the system's purpose and components"
           disabled={isLoading}
+          InputProps={{
+            readOnly: isViewing
+          }}
         />
       </Box>
 
@@ -226,7 +257,7 @@ const SystemPropertiesForm = () => {
             onClick={handleCancel}
             disabled={isLoading}
           >
-            Cancel
+            {isViewing ? 'Close' : 'Cancel'}
           </Button>
           
           {isCreating && (
@@ -237,6 +268,17 @@ const SystemPropertiesForm = () => {
               disabled={!isFormValid() || isLoading || !PermissionService.checkPermission('create', 'editor')}
             >
               {isLoading ? 'Creating...' : 'Create System'}
+            </Button>
+          )}
+          
+          {isViewing && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleEdit}
+              disabled={isLoading || !PermissionService.checkPermission('edit', 'editor')}
+            >
+              Edit System
             </Button>
           )}
           
