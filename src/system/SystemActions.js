@@ -54,7 +54,7 @@ export const createSystemAction = (systemData) => async (dispatch) => {
     dispatch(addSystem(systemPlainObject))
     dispatch(setCurrentSystemId(createdSystem.systemId))
     dispatch(setVisibleSystems([createdSystem.systemId]))
-    dispatch(clearSystemFormData())
+    // Note: addSystem action now handles form data clearing and mode transitions
     
     return createdSystem
   } catch (error) {

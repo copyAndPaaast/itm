@@ -168,16 +168,16 @@ const systemSlice = createSlice({
         state.visibleSystemIds.push(system.systemId)
       }
       
-      // Transition from creation to editing mode (keeps Properties Panel open)
+      // Transition from creation to viewing mode (keeps Properties Panel open)
       state.isCreatingSystem = false
-      state.isEditingSystem = true
+      state.isEditingSystem = false
       
-      // Update form data with the created system for immediate editing
+      // Clear form data - useEffect in SystemPropertiesForm will populate it from currentSystem
       state.systemFormData = {
-        systemName: system.systemName,
-        systemLabel: system.systemLabel,
-        description: system.description,
-        properties: system.properties || {}
+        systemName: '',
+        systemLabel: '',
+        description: '',
+        properties: {}
       }
     },
 

@@ -5,7 +5,7 @@
  * Handles creation of new systems and editing existing system properties.
  */
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { 
   Box, 
   TextField, 
@@ -27,7 +27,7 @@ import {
   selectError, 
   selectIsLoading,
   updateSystemFormData, 
-  clearSystemFormData 
+  clearSystemFormData
 } from '../store/systemSlice.js'
 import { createSystemAction } from './SystemActions.js'
 import { startEditSystem } from '../store/systemSlice.js'
@@ -81,6 +81,35 @@ const SystemPropertiesForm = () => {
   const currentSystem = useSelector(selectCurrentSystem)
   const error = useSelector(selectError)
   const isLoading = useSelector(selectIsLoading)
+
+  /**
+   * Populate form data when currentSystem changes (for viewing mode)
+   */
+  useEffect(() => {
+    if (currentSystem && !isCreatingSystem && !isEditingSystem) {
+      console.log('📝 Populating form with current system data:', currentSystem)
+      
+      // Parse properties if they're stored as JSON string
+      let properties = {}
+      if (currentSystem.properties) {
+        try {
+          properties = typeof currentSystem.properties === 'string' 
+            ? JSON.parse(currentSystem.properties) 
+            : currentSystem.properties
+        } catch (error) {
+          console.warn('Failed to parse system properties:', error)
+          properties = {}
+        }
+      }
+      
+      dispatch(updateSystemFormData({
+        systemName: currentSystem.systemName || '',
+        systemLabel: currentSystem.systemLabel || '',
+        description: currentSystem.description || '',
+        properties: properties
+      }))
+    }
+  }, [currentSystem, isCreatingSystem, isEditingSystem, dispatch])
 
   /**
    * Handle form field changes
