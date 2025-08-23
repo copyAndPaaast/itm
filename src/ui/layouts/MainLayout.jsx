@@ -10,7 +10,7 @@
  */
 
 import React, { useRef, useEffect } from 'react'
-import { Box, Button, Stack, Typography, Paper } from '@mui/material'
+import { Box, Button, Stack, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useDispatch, useSelector } from 'react-redux'
@@ -18,6 +18,7 @@ import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuc
 import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem, selectCurrentSystemId } from '../../store/systemSlice.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
+import ControlPanel from '../components/layout/ControlPanel/ControlPanel.jsx'
 import GraphViewer from '../components/viewer/GraphViewer.jsx'
 import SystemPropertiesForm from '../../system/SystemPropertiesForm.jsx'
 import { createMainLayoutStyles } from './MainLayoutStyles.js'
@@ -129,14 +130,11 @@ const MainLayout = ({ children }) => {
             collapsible={true}
             id="control-panel"
           >
-            <Paper elevation={0} sx={styles.controlPanelPaper}>
-              <Typography variant="h6" gutterBottom>
-                Control Panel
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Left resizable/collapsible panel for controls
-              </Typography>
-            </Paper>
+            <ControlPanel
+              systemsComponent={null}
+              nodesComponent={null}
+              relationshipsComponent={null}
+            />
           </Panel>
 
           <PanelResizeHandle style={styles.resizeHandle.horizontal} />
