@@ -22,9 +22,10 @@ export const createSystemsListStyles = (theme) => ({
   },
 
   listItemButton: {
-    padding: theme.spacing(1),
+    padding: theme.spacing(0.75, 1),
     borderRadius: theme.shape.borderRadius,
-    margin: theme.spacing(0.5, 0),
+    margin: theme.spacing(0.25, 0),
+    minHeight: 36,
     
     '&:hover': {
       backgroundColor: theme.palette.action.hover
@@ -48,11 +49,11 @@ export const createSystemsListStyles = (theme) => ({
     }
   },
 
-  primaryTextContainer: {
+  compactRowContainer: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: theme.spacing(1)
+    gap: theme.spacing(1),
+    width: '100%'
   },
 
   systemName: {
@@ -69,48 +70,34 @@ export const createSystemsListStyles = (theme) => ({
     fontWeight: theme.typography.fontWeightSemiBold
   },
 
-  activeChip: {
-    height: 20,
-    fontSize: theme.typography.caption.fontSize,
+  systemLabel: {
+    color: theme.palette.text.secondary,
+    fontWeight: theme.typography.fontWeightRegular,
+    flexShrink: 0
+  },
+
+  activeSystemLabel: {
+    color: theme.palette.primary.dark + '90'
+  },
+
+  nodeCount: {
+    color: theme.palette.text.secondary,
+    fontWeight: theme.typography.fontWeightRegular,
+    minWidth: '20px',
+    textAlign: 'right',
+    flexShrink: 0
+  },
+
+  activeNodeCount: {
+    color: theme.palette.primary.dark + '90',
     fontWeight: theme.typography.fontWeightMedium
   },
 
-  secondaryContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(0.25),
-    mt: theme.spacing(0.5)
-  },
-
-  description: {
-    display: '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    lineHeight: 1.2
-  },
-
-  activeSecondaryText: {
-    color: theme.palette.primary.dark + '80'
-  },
-
-  // Loading state styles
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing(3),
-    minHeight: 120
-  },
-
-  // Error state styles
-  errorAlert: {
-    margin: theme.spacing(1, 0),
-    '& .MuiAlert-message': {
-      width: '100%'
-    }
+  activeChip: {
+    height: 18,
+    fontSize: theme.typography.caption.fontSize,
+    fontWeight: theme.typography.fontWeightMedium,
+    marginLeft: 'auto'
   },
 
   // Empty state styles

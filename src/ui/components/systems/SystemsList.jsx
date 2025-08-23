@@ -13,8 +13,6 @@ import {
   ListItemText,
   Typography,
   Box,
-  CircularProgress,
-  Alert,
   Chip
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
@@ -22,11 +20,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { 
   selectSystems,
   selectCurrentSystemId,
-  selectIsLoading,
-  selectError,
   setCurrentSystemId
-} from '../store/systemSlice.js'
-import { loadAllSystemsAction } from './SystemActions.js'
+} from '../../../store/systemSlice.js'
+import { loadAllSystemsAction } from '../../../system/SystemActions.js'
 import { createSystemsListStyles } from './SystemsListStyles.js'
 
 const SystemsList = () => {
@@ -37,8 +33,6 @@ const SystemsList = () => {
   // Redux state
   const systems = useSelector(selectSystems)
   const currentSystemId = useSelector(selectCurrentSystemId)
-  const isLoading = useSelector(selectIsLoading)
-  const error = useSelector(selectError)
 
   /**
    * Load systems on component mount
@@ -56,37 +50,7 @@ const SystemsList = () => {
     dispatch(setCurrentSystemId(systemId))
   }
 
-  /**
-   * Render loading state
-   */
-  if (isLoading) {
-    return (
-      <Box sx={styles.loadingContainer}>
-        <CircularProgress size={24} />
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Loading systems...
-        </Typography>
-      </Box>
-    )
-  }
-
-  /**
-   * Render error state
-   */
-  if (error) {
-    return (
-      <Alert severity="error" sx={styles.errorAlert}>
-        <Typography variant="body2">
-          {error.message}
-        </Typography>
-        {error.details && (
-          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-            {error.details}
-          </Typography>
-        )}
-      </Alert>
-    )
-  }
+  // Note: Loading and error states are handled by the central StatusIndicator
 
   /**
    * Render empty state
@@ -126,15 +90,36 @@ const SystemsList = () => {
               >
                 <ListItemText
                   primary={
-                    <Box sx={styles.primaryTextContainer}>
+                    <Box sx={styles.compactRowContainer}>
                       <Typography 
-                        variant="subtitle2" 
+                        variant="body2" 
+                        component="span"
                         sx={{
                           ...styles.systemName,
                           ...(isActive && styles.activeSystemName)
                         }}
                       >
                         {system.systemName}
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        component="span"
+                        sx={{
+                          ...styles.systemLabel,
+                          ...(isActive && styles.activeSystemLabel)
+                        }}
+                      >
+                        [{system.systemLabel}]
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        component="span"
+                        sx={{
+                          ...styles.nodeCount,
+                          ...(isActive && styles.activeNodeCount)
+                        }}
+                      >
+                        {system.nodeCount || 0}
                       </Typography>
                       {isActive && (
                         <Chip 
@@ -144,36 +129,6 @@ const SystemsList = () => {
                           sx={styles.activeChip}
                         />
                       )}
-                    </Box>
-                  }
-                  secondary={
-                    <Box sx={styles.secondaryContainer}>
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary"
-                        sx={isActive && styles.activeSecondaryText}
-                      >
-                        {system.systemLabel}
-                      </Typography>
-                      {system.description && (
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary"
-                          sx={{
-                            ...styles.description,
-                            ...(isActive && styles.activeSecondaryText)
-                          }}
-                        >
-                          {system.description}
-                        </Typography>
-                      )}
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary"
-                        sx={isActive && styles.activeSecondaryText}
-                      >
-                        Nodes: {system.nodeCount || 0}
-                      </Typography>
                     </Box>
                   }
                 />

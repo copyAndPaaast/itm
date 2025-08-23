@@ -21,7 +21,7 @@ import Footer from '../components/layout/Footer/Footer.jsx'
 import ControlPanel from '../components/layout/ControlPanel/ControlPanel.jsx'
 import GraphViewer from '../components/viewer/GraphViewer.jsx'
 import SystemPropertiesForm from '../../system/SystemPropertiesForm.jsx'
-import SystemsList from '../../system/SystemsList.jsx'
+import SystemsList from '../components/systems/SystemsList.jsx'
 import { createMainLayoutStyles } from './MainLayoutStyles.js'
 
 const MainLayout = ({ children }) => {
