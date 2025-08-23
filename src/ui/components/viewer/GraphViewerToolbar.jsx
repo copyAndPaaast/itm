@@ -240,7 +240,7 @@ export const GraphViewerToolbar = ({
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
             {title || (
               <Typography variant="subtitle1">
-                ITM Graph ({nodeCount} nodes, {edgeCount} edges)
+                ITM Graph
               </Typography>
             )}
             
@@ -249,13 +249,13 @@ export const GraphViewerToolbar = ({
               <Stack direction="row" spacing={1}>
                 <Chip
                   size="small"
-                  label={`${nodeCount} nodes`}
+                  label={`${nodeCount} Assets`}
                   variant="outlined"
                   sx={{ fontSize: '0.75rem' }}
                 />
                 <Chip
                   size="small"
-                  label={`${edgeCount} edges`}
+                  label={`${edgeCount} Beziehungen`}
                   color="primary"
                   variant="outlined"
                   sx={{ fontSize: '0.75rem' }}

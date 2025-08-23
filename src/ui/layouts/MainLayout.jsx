@@ -17,6 +17,7 @@ import { useDispatch } from 'react-redux'
 import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../store/statusSlice.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
+import GraphViewer from '../components/viewer/GraphViewer.jsx'
 import { createMainLayoutStyles } from './MainLayoutStyles.js'
 
 const MainLayout = ({ children }) => {
@@ -161,16 +162,10 @@ const MainLayout = ({ children }) => {
                   collapsible={true}
                   id="viewer-panel"
                 >
-                  <Paper elevation={0} sx={styles.viewerPanelPaper}>
-                    <Box sx={styles.viewerContent}>
-                      <Typography variant="h4" gutterBottom>
-                        Graph Viewer
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary">
-                        Main viewer area - Resizable, fills most space initially
-                      </Typography>
-                    </Box>
-                  </Paper>
+                  <GraphViewer
+                    elements={[]}
+                    style={{ height: '100%', width: '100%' }}
+                  />
                 </Panel>
 
                 <PanelResizeHandle style={styles.resizeHandle.vertical} />
