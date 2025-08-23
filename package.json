@@ -19,10 +19,8 @@
   ],
   "scripts": {
     "build": "vite build",
-    "build:ui": "VITE_MODE=ui vite build",
-    "dev": "vite build --watch",
-    "dev:ui": "VITE_MODE=ui vite",
-    "preview:ui": "VITE_MODE=ui vite preview",
+    "dev": "vite",
+    "preview": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
