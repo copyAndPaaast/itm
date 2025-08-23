@@ -80,11 +80,39 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - Use `PermissionService` for centralized permission management
 - Never embed permission logic directly in components or services
 
-### Styling and Theming  
-- **All styles must be kept in separate files in `/src/ui/styles/`**
-- Support Material UI theming with `createGraphViewerStyles(theme)` pattern
-- Extract Cytoscape styles to modular functions like `buildCytoscapeStyle(customStyles, theme)`
-- Never embed styling constants directly in components or services
+### Styling and Theming - CRITICAL RULE
+- **ALL styles must be kept in component-local style files**
+- **NEVER use inline sx={{ }} styling in components**
+- **ALWAYS use sx={styles.container} pattern**
+- **Each component gets its own folder with ComponentStyles.js**
+- Support Material UI theming with `createComponentStyles(theme)` pattern
+- Extract global styles (like Cytoscape) to `/src/ui/styles/` for shared usage
+- Never embed styling constants directly in components
+
+**Component Structure:**
+```
+src/ui/components/layout/Footer/
+├── Footer.jsx              # Clean component logic
+├── FooterStyles.js         # All styling extracted
+└── FooterInterface.js      # API documentation (if needed)
+```
+
+**Example of CORRECT styling separation:**
+```jsx
+// ❌ WRONG - Inline styling clutters component
+<Box sx={{ 
+  p: 1.5, 
+  display: 'flex', 
+  justifyContent: 'space-between' 
+}}>
+
+// ✅ CORRECT - Clean component with extracted styles
+import { createFooterStyles } from './FooterStyles.js'
+const styles = createFooterStyles(theme)
+<Box sx={styles.container}>
+```
+
+**REMINDER**: Components must be as readable as possible. No styling clutter!
 
 ## MANDATORY: Function Duplication Check
 Before implementing any new method or function:

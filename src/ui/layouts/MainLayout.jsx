@@ -156,7 +156,7 @@ const MainLayout = ({ children }) => {
 
                 {/* Viewer Section - Resizable, Takes Most Space */}
                 <Panel 
-                  defaultSize={60} 
+                  defaultSize={80} 
                   minSize={10}
                   collapsible={true}
                   id="viewer-panel"
@@ -178,7 +178,7 @@ const MainLayout = ({ children }) => {
                 {/* Bottom Table Section */}
                 <Panel 
                   defaultSize={0} 
-                  minSize={15}
+                  minSize={0}
                   collapsible={true}
                   id="table-panel"
                 >

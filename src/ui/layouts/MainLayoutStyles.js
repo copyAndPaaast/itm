@@ -39,7 +39,7 @@ export const createMainLayoutStyles = (theme) => ({
     borderRadius: 0,
     borderRight: 1,
     borderColor: 'divider',
-    backgroundColor: 'grey.50',
+    backgroundColor: theme.palette.grey[50],
     p: 2
   },
 
@@ -140,12 +140,12 @@ export const createMainLayoutStyles = (theme) => ({
    */
   resizeHandle: {
     horizontal: {
-      width: '4px', 
+      width: '1px', 
       background: '#e0e0e0', 
       cursor: 'col-resize'
     },
     vertical: {
-      height: '4px', 
+      height: '1px', 
       background: '#e0e0e0', 
       cursor: 'row-resize'
     }
