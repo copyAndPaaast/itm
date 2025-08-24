@@ -142,6 +142,15 @@ export class GraphViewerMapper {
       }
     }
 
+    // Add position data if available (crucial for manual positioning)
+    if (node.position && node.position.x !== undefined && node.position.y !== undefined) {
+      nodeElement.position = {
+        x: node.position.x,
+        y: node.position.y
+      }
+      console.log('🎯 MAPPER: Added position data for node', businessId, nodeElement.position)
+    }
+
     // Set parent if in system
     if (parentId) {
       nodeElement.data.parent = parentId
@@ -197,6 +206,15 @@ export class GraphViewerMapper {
           // Visual styling for multi-system assets
           borderStyle: 'dashed' // Special styling for multi-system instances
         }
+      }
+
+      // Add position data if available (crucial for manual positioning)
+      if (node.position && node.position.x !== undefined && node.position.y !== undefined) {
+        nodeElement.position = {
+          x: node.position.x,
+          y: node.position.y
+        }
+        console.log('🎯 MAPPER: Added position data for multi-system node', businessId, nodeElement.position)
       }
 
       // Set parent system compound
