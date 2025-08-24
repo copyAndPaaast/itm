@@ -64,7 +64,7 @@ export const GraphViewerToolbar = ({
   showTitle = true,
   showSearch = true,
   showMetrics = true,
-  title = null,
+  title = 'ITM Graph', // Default fallback title
   
   // Group and system collapse data
   availableGroups = [],
@@ -238,11 +238,9 @@ export const GraphViewerToolbar = ({
         {/* Title Section */}
         {showTitle && (
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-            {title || (
-              <Typography variant="subtitle1">
-                ITM Graph
-              </Typography>
-            )}
+            <Typography variant="subtitle1">
+              {title}
+            </Typography>
             
             {/* Metrics Chips */}
             {showMetrics && (

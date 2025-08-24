@@ -151,6 +151,15 @@ export class DatabaseService {
 
     return this.lastHealthCheck
   }
+
+  /**
+   * Ensure default node and edge classes exist
+   * Proxy method to Neo4jService.ensureDefaultClasses()
+   */
+  async ensureDefaultClasses() {
+    console.log('📞 DatabaseService.ensureDefaultClasses() called - proxying to Neo4jService...')
+    return await this.neo4jService.ensureDefaultClasses()
+  }
 }
 
 export default DatabaseService

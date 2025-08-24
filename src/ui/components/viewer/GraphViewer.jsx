@@ -33,6 +33,9 @@ const GraphViewer = forwardRef(({
   onNodesMove = () => {},
   userPermissions = 'viewer',
   
+  // Graph display props
+  title = 'ITM Graph',
+  
   // Group and system collapse props
   availableGroups = [],
   availableSystems = [],
@@ -781,6 +784,7 @@ const GraphViewer = forwardRef(({
         showTitle={true}
         showSearch={true}
         showMetrics={true}
+        title={title}
         availableGroups={availableGroups}
         availableSystems={availableSystems}
         groupVisibility={groupVisibility}

@@ -165,6 +165,173 @@ export class Neo4jService {
   }
 
   /**
+   * Ensure default node and edge classes exist for basic graph operations
+   * Creates minimal generic classes if they don't already exist
+   */
+  async ensureDefaultClasses() {
+    if (this._defaultClassesInitialized) {
+      console.log('✅ Default classes already initialized, skipping...')
+      return // Already initialized
+    }
+
+    try {
+      console.log('🏗️ Starting default classes initialization...')
+      console.log('🔍 Current Neo4j connection status:', this.getStatus())
+      
+      // Import services dynamically to avoid circular dependencies
+      console.log('📦 Importing AssetClassService...')
+      const { AssetClassService } = await import('../NodeModule/assetclass/AssetClassService.js')
+      console.log('📦 Importing RelationshipClassService...')
+      const { RelationshipClassService } = await import('../RelationModule/relationshipclass/RelationshipClassService.js')
+      
+      console.log('🏭 Creating service instances...')
+      const assetClassService = new AssetClassService()
+      const relationshipClassService = new RelationshipClassService()
+      
+      console.log('🏗️ Creating default asset class...')
+      await this._ensureDefaultAssetClass(assetClassService)
+      
+      console.log('🔗 Creating default relationship class...')
+      await this._ensureDefaultRelationshipClass(relationshipClassService)
+      
+      this._defaultClassesInitialized = true
+      console.log('✅ Default classes initialization complete successfully')
+      
+    } catch (error) {
+      console.error('❌ FAILED to initialize default classes:')
+      console.error('   Error type:', error.constructor.name)
+      console.error('   Error message:', error.message)
+      console.error('   Stack trace:', error.stack)
+      throw error
+    }
+  }
+
+  /**
+   * Create default generic asset class for basic node creation
+   * @private
+   */
+  async _ensureDefaultAssetClass(assetClassService) {
+    const className = 'Default'
+    
+    try {
+      console.log(`🔍 Checking if AssetClass '${className}' exists...`)
+      const exists = await assetClassService.assetClassExists({ className })
+      console.log(`📋 AssetClass '${className}' exists check result:`, exists)
+      
+      if (!exists) {
+        console.log(`🏗️ Creating default AssetClass: ${className}`)
+        console.log('📝 AssetClass data:', {
+          className,
+          propertySchema: {
+            name: { 
+              type: 'string', 
+              required: true, 
+              default: 'New Asset',
+              description: 'Asset name or identifier'
+            },
+            description: { 
+              type: 'string', 
+              required: false, 
+              default: '',
+              description: 'Optional asset description'
+            }
+          },
+          requiredProperties: ['name']
+        })
+        
+        await assetClassService.createAssetClass({
+          className,
+          propertySchema: {
+            name: { 
+              type: 'string', 
+              required: true, 
+              default: 'New Asset',
+              description: 'Asset name or identifier'
+            },
+            description: { 
+              type: 'string', 
+              required: false, 
+              default: '',
+              description: 'Optional asset description'
+            }
+          },
+          requiredProperties: ['name']
+        })
+        console.log(`✅ Default AssetClass '${className}' created successfully`)
+      } else {
+        console.log(`✅ Default AssetClass '${className}' already exists`)
+      }
+    } catch (error) {
+      console.error(`❌ FAILED to ensure default AssetClass '${className}':`)
+      console.error('   Error type:', error.constructor.name)
+      console.error('   Error message:', error.message)
+      console.error('   Stack trace:', error.stack)
+      throw error
+    }
+  }
+
+  /**
+   * Create default generic relationship class for basic edge creation
+   * @private
+   */
+  async _ensureDefaultRelationshipClass(relationshipClassService) {
+    const relationshipClassName = 'Default'
+    const relationshipType = 'CONNECTS_TO'
+    
+    try {
+      console.log(`🔍 Checking if RelationshipClass '${relationshipClassName}' exists...`)
+      const exists = await relationshipClassService.relationshipClassExists({ relationshipClassName })
+      console.log(`📋 RelationshipClass '${relationshipClassName}' exists check result:`, exists)
+      
+      if (!exists) {
+        console.log(`🏗️ Creating default RelationshipClass: ${relationshipClassName} (${relationshipType})`)
+        console.log('📝 RelationshipClass data:', {
+          relationshipClassName,
+          relationshipType,
+          propertySchema: {
+            connection_type: {
+              type: 'string',
+              required: false,
+              default: 'general',
+              description: 'Type of connection between assets'
+            }
+          },
+          requiredProperties: [],
+          allowedFromTypes: ['Asset'],
+          allowedToTypes: ['Asset'],
+          description: 'Generic connection between any two assets'
+        })
+        
+        await relationshipClassService.createRelationshipClass({
+          relationshipClassName,
+          relationshipType,
+          propertySchema: {
+            connection_type: {
+              type: 'string',
+              required: false,
+              default: 'general',
+              description: 'Type of connection between assets'
+            }
+          },
+          requiredProperties: [],
+          allowedFromTypes: ['Asset'],
+          allowedToTypes: ['Asset'],
+          description: 'Generic connection between any two assets'
+        })
+        console.log(`✅ Default RelationshipClass '${relationshipClassName}' created successfully`)
+      } else {
+        console.log(`✅ Default RelationshipClass '${relationshipClassName}' already exists`)
+      }
+    } catch (error) {
+      console.error(`❌ FAILED to ensure default RelationshipClass '${relationshipClassName}':`)
+      console.error('   Error type:', error.constructor.name)
+      console.error('   Error message:', error.message)
+      console.error('   Stack trace:', error.stack)
+      throw error
+    }
+  }
+
+  /**
    * Close the database connection
    * Should only be called when application is shutting down
    */
@@ -175,6 +342,7 @@ export class Neo4jService {
     
     await this.driver.close()
     this.isConnected = false
+    this._defaultClassesInitialized = false
     Neo4jService.instance = null
   }
 

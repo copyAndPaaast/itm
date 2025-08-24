@@ -79,7 +79,7 @@ function AppContent() {
 
   useEffect(() => {
     /**
-     * Perform single database connectivity check on app startup
+     * Perform database connectivity check and initialize default classes on app startup
      */
     const initializeDatabase = async () => {
       dispatch(setLoading('Connecting to database...'))
@@ -88,27 +88,50 @@ function AppContent() {
         const databaseService = DatabaseService.getInstance()
         const healthResult = await databaseService.performHealthCheck()
         
-        // Show result and clear status after a brief delay
-        switch (healthResult.status) {
-          case 'success':
-            dispatch(setSuccess(healthResult.message))
+        // If connection is successful, ensure default classes exist
+        if (healthResult.status === 'success') {
+          dispatch(setLoading('Initializing default classes...'))
+          console.log('🚀 Database connection successful, starting default classes initialization...')
+          
+          try {
+            console.log('📞 Calling databaseService.ensureDefaultClasses()...')
+            await databaseService.ensureDefaultClasses()
+            console.log('✅ Default classes initialization completed successfully')
+            
+            // Show success result
+            dispatch(setSuccess('Database ready with default classes'))
             setTimeout(() => dispatch(setIdle('Ready')), 2000)
-            break
             
-          case 'warning':
+          } catch (classError) {
+            // Default class creation failed - show warning but continue
+            console.error('❌ Default class creation failed in App.jsx:')
+            console.error('   Error type:', classError.constructor.name)
+            console.error('   Error message:', classError.message)
+            console.error('   Stack trace:', classError.stack)
+            
             dispatch(setWarning({
-              message: healthResult.message,
-              details: healthResult.details
+              message: 'Database connected but default class creation failed',
+              details: classError.message
             }))
-            break
-            
-          case 'error':
-          default:
-            dispatch(setError({
-              message: healthResult.message,
-              details: healthResult.details
-            }))
-            break
+          }
+        } else {
+          // Handle connection issues
+          switch (healthResult.status) {
+            case 'warning':
+              dispatch(setWarning({
+                message: healthResult.message,
+                details: healthResult.details
+              }))
+              break
+              
+            case 'error':
+            default:
+              dispatch(setError({
+                message: healthResult.message,
+                details: healthResult.details
+              }))
+              break
+          }
         }
         
       } catch (error) {

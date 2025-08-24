@@ -15,7 +15,8 @@ import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useDispatch, useSelector } from 'react-redux'
 import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../../store/statusSlice.js'
-import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem, selectCurrentSystemId } from '../../store/systemSlice.js'
+import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem, selectCurrentSystemId, selectCurrentSystem, selectSystemViewMode } from '../../store/systemSlice.js'
+import { SYSTEM_VIEW_MODES } from '../../store/systemViewModes.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
 import ControlPanel from '../components/layout/ControlPanel/ControlPanel.jsx'
@@ -35,6 +36,31 @@ const MainLayout = ({ children }) => {
   const isCreatingSystem = useSelector(selectIsCreatingSystem)
   const isEditingSystem = useSelector(selectIsEditingSystem)
   const currentSystemId = useSelector(selectCurrentSystemId)
+  const currentSystem = useSelector(selectCurrentSystem)
+  const systemViewMode = useSelector(selectSystemViewMode)
+
+  /**
+   * Determine the graph viewer title based on current system state
+   */
+  const getGraphViewerTitle = () => {
+    // If in compound view mode, show "System Übersicht"
+    if (systemViewMode === SYSTEM_VIEW_MODES.COMPOUND) {
+      return 'System Übersicht'
+    }
+    
+    // If we have a current system in single mode, show its name
+    if (currentSystem && systemViewMode === SYSTEM_VIEW_MODES.SINGLE) {
+      return currentSystem.systemName || `System ${currentSystem.systemId}`
+    }
+    
+    // If creating a system, show creation state
+    if (isCreatingSystem) {
+      return 'Neues System'
+    }
+    
+    // Default fallback
+    return 'ITM Graph'
+  }
 
   /**
    * Reset all panels to their default sizes
@@ -187,6 +213,7 @@ const MainLayout = ({ children }) => {
                   <GraphViewer
                     elements={[]}
                     style={{ height: '100%', width: '100%' }}
+                    title={getGraphViewerTitle()}
                   />
                 </Panel>
 
