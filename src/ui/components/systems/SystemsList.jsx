@@ -20,7 +20,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { 
   selectSystems,
   selectCurrentSystemId,
-  setCurrentSystemId
+  startEditSystem
 } from '../../../store/systemSlice.js'
 import { loadAllSystemsAction } from '../../../system/SystemActions.js'
 import { createSystemsListStyles } from './SystemsListStyles.js'
@@ -47,7 +47,8 @@ const SystemsList = () => {
    */
   const handleSystemClick = (systemId) => {
     console.log('🎯 System selected:', systemId)
-    dispatch(setCurrentSystemId(systemId))
+    dispatch(startEditSystem(systemId))
+    console.log('📝 System set as active for editing:', systemId)
   }
 
   // Note: Loading and error states are handled by the central StatusIndicator

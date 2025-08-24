@@ -33,6 +33,14 @@ const GraphViewer = forwardRef(({
   onNodesMove = () => {},
   userPermissions = 'viewer',
   
+  // System context props
+  currentSystemId,
+  currentSystem,
+  isEditingSystem,
+  title,
+  nodeCount,
+  edgeCount,
+  
   // Group and system collapse props
   availableGroups = [],
   availableSystems = [],
@@ -770,8 +778,8 @@ const GraphViewer = forwardRef(({
     >
       {/* Toolbar */}
       <GraphViewerToolbar
-        nodeCount={elements.filter(el => el.group === 'nodes').length}
-        edgeCount={elements.filter(el => el.group === 'edges').length}
+        nodeCount={nodeCount || 0}
+        edgeCount={edgeCount || 0}
         loading={false}
         onEvent={handleToolbarEvent}
         onSearch={handleSearch}
