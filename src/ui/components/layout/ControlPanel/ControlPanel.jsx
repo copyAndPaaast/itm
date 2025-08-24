@@ -25,12 +25,16 @@ import { useTheme } from '@mui/material/styles'
 import { createControlPanelStyles } from './ControlPanelStyles.js'
 import { PermissionService } from '../../../../user/PermissionService.js'
 import { useOverlay } from '../../overlay/OverlayProvider.jsx'
+import AssetClassesList from '../../assetclasses/AssetClassesList.jsx'
+import RelationshipClassesList from '../../relationshipclasses/RelationshipClassesList.jsx'
 
 const ControlPanel = ({
   systemsComponent = null,
   nodesComponent = null,
   relationshipsComponent = null,
-  userPermissions = 'editor' // TODO: Get from user context/Redux
+  userPermissions = 'editor', // TODO: Get from user context/Redux
+  onAssetClassSelect = () => {},
+  onRelationshipClassSelect = () => {}
 }) => {
   const theme = useTheme()
   const styles = createControlPanelStyles(theme)
@@ -170,12 +174,8 @@ const ControlPanel = ({
             </Typography>
           </AccordionSummary>
           <AccordionDetails sx={styles.accordionDetails}>
-            {nodesComponent ? (
-              nodesComponent
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                Nodes list component will be displayed here
-              </Typography>
+            {nodesComponent || (
+              <AssetClassesList onAssetClassSelect={onAssetClassSelect} />
             )}
           </AccordionDetails>
         </Accordion>
@@ -196,12 +196,8 @@ const ControlPanel = ({
             </Typography>
           </AccordionSummary>
           <AccordionDetails sx={styles.accordionDetails}>
-            {relationshipsComponent ? (
-              relationshipsComponent
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                Relationships list component will be displayed here
-              </Typography>
+            {relationshipsComponent || (
+              <RelationshipClassesList onRelationshipClassSelect={onRelationshipClassSelect} />
             )}
           </AccordionDetails>
         </Accordion>

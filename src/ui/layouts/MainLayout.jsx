@@ -137,6 +137,24 @@ const MainLayout = ({ children }) => {
     console.log('🚀 Starting new system creation')
     dispatch(startCreateSystem())
   }
+
+  /**
+   * Handle asset class selection for node creation
+   */
+  const handleAssetClassSelect = (assetClass) => {
+    console.log('🎯 AssetClass selected in MainLayout:', assetClass.className)
+    // TODO: Open node creation overlay/dialog with pre-filled asset class
+    dispatch(showTemporarySuccess(`Active node type: ${assetClass.className}`))
+  }
+
+  /**
+   * Handle relationship class selection for edge creation
+   */
+  const handleRelationshipClassSelect = (relationshipClass) => {
+    console.log('🔗 RelationshipClass selected in MainLayout:', relationshipClass.relationshipType)
+    // TODO: Open edge creation mode with pre-selected relationship type
+    dispatch(showTemporarySuccess(`Active edge type: ${relationshipClass.relationshipType}`))
+  }
   return (
     <Box sx={styles.mainContainer}>
       {/* Header Component */}
@@ -162,6 +180,8 @@ const MainLayout = ({ children }) => {
               nodesComponent={null}
               relationshipsComponent={null}
               userPermissions="editor" // TODO: Get from user context/Redux state
+              onAssetClassSelect={handleAssetClassSelect}
+              onRelationshipClassSelect={handleRelationshipClassSelect}
             />
           </Panel>
 
