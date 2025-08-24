@@ -39,6 +39,15 @@ const MainLayout = ({ children }) => {
   const currentSystem = useSelector(selectCurrentSystem)
   const systemViewMode = useSelector(selectSystemViewMode)
 
+  // Debug system state
+  useEffect(() => {
+    console.log('🔍 MainLayout System State Debug:')
+    console.log('  currentSystemId:', currentSystemId)
+    console.log('  currentSystem:', currentSystem)
+    console.log('  systemViewMode:', systemViewMode)
+    console.log('  isCreatingSystem:', isCreatingSystem)
+  }, [currentSystemId, currentSystem, systemViewMode, isCreatingSystem])
+
   /**
    * Determine the graph viewer title based on current system state
    */
@@ -155,6 +164,55 @@ const MainLayout = ({ children }) => {
     // TODO: Open edge creation mode with pre-selected relationship type
     dispatch(showTemporarySuccess(`Active edge type: ${relationshipClass.relationshipType}`))
   }
+
+
+  /**
+   * Handle GraphViewer events - including node creation
+   */
+  const handleGraphViewerEvent = (eventType, eventData) => {
+    console.log('📡 GraphViewer event:', eventType, eventData)
+    
+    switch (eventType) {
+      case 'create_node_blocked':
+        if (eventData.reason === 'no_system_selected') {
+          dispatch(setWarning({
+            message: 'System Selection Required',
+            details: 'Please select a system from the Systems list before creating nodes'
+          }))
+        } else if (eventData.reason === 'system_not_editing') {
+          dispatch(setWarning({
+            message: 'Edit Mode Required',
+            details: 'Please activate "Edit System" mode to create nodes in the selected system'
+          }))
+        }
+        break
+        
+      case 'create_node':
+        // Show immediate feedback with context
+        const actionType = eventData.isEditingSystem ? 'Adding node to system being edited' : 'Creating node in selected system'
+        dispatch(setLoading(actionType + '...'))
+        
+        // TODO: Integrate with NodeService for database persistence
+        console.log('🎯 Node created in system:', eventData.systemName, 'Context:', eventData.context)
+        console.log('📝 Node data:', eventData.nodeData)
+        
+        // For now, just show success - later this will be actual database save
+        setTimeout(() => {
+          const successMessage = eventData.isEditingSystem 
+            ? `Node added to system "${eventData.systemName}" (currently editing)`
+            : `Node created in "${eventData.systemName}"`
+          dispatch(showTemporarySuccess(successMessage))
+        }, 500)
+        break
+        
+      case 'background_click':
+        // Clear any temporary status messages on background click
+        break
+        
+      default:
+        console.log('📡 Unhandled GraphViewer event:', eventType)
+    }
+  }
   return (
     <Box sx={styles.mainContainer}>
       {/* Header Component */}
@@ -234,6 +292,11 @@ const MainLayout = ({ children }) => {
                     elements={[]}
                     style={{ height: '100%', width: '100%' }}
                     title={getGraphViewerTitle()}
+                    userPermissions="editor"
+                    currentSystemId={currentSystemId}
+                    currentSystem={currentSystem}
+                    isEditingSystem={isEditingSystem}
+                    onEvent={handleGraphViewerEvent}
                   />
                 </Panel>
 

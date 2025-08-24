@@ -184,7 +184,7 @@ const AssetClassesList = ({ onAssetClassSelect = () => {} }) => {
                         <Chip 
                           label="Selected" 
                           size="small" 
-                          color="primary" 
+                          color="success" 
                           sx={styles.activeChip}
                         />
                       )}

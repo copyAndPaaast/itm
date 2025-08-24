@@ -48,7 +48,7 @@ export class SystemService extends SystemInterface {
           createdDate: datetime(),
           isActive: true
         })
-        RETURN s, toString(id(s)) as systemId
+        RETURN s, elementId(s) as systemId
         `,
         { systemName, systemLabel, description, propertiesJson }
       )
@@ -99,14 +99,14 @@ export class SystemService extends SystemInterface {
         query = `
           MATCH (s:_System)
           WHERE id(s) = $systemId AND s.isActive = true
-          RETURN s, toString(id(s)) as systemId
+          RETURN s, elementId(s) as systemId
         `
         params = { systemId: this.neo4jService.int(systemId) }
       } else {
         query = `
           MATCH (s:_System)
           WHERE s.systemLabel = $systemLabel AND s.isActive = true
-          RETURN s, toString(id(s)) as systemId
+          RETURN s, elementId(s) as systemId
         `
         params = { systemLabel }
       }
@@ -177,7 +177,7 @@ export class SystemService extends SystemInterface {
         MATCH (s:_System)
         WHERE id(s) = $systemId AND s.isActive = true
         SET ${setParts.join(', ')}
-        RETURN s, toString(id(s)) as systemId
+        RETURN s, elementId(s) as systemId
       `
 
       const result = await session.run(query, params)
@@ -270,7 +270,7 @@ export class SystemService extends SystemInterface {
         `
         MATCH (s:_System)
         WHERE s.isActive = true
-        RETURN s, toString(id(s)) as systemId
+        RETURN s, elementId(s) as systemId
         ORDER BY s.systemName
         `
       )
