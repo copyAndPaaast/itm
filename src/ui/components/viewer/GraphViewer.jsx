@@ -590,12 +590,8 @@ const GraphViewer = forwardRef(({
     const cy = cytoscape({
       container: containerRef.current,
       style: buildCytoscapeStyle({}, theme),
-      layout: {
-        name: 'dagre',
-        nodeSep: 100,
-        edgeSep: 50,
-        rankSep: 150
-      },
+      // No default layout - use position data from elements
+      layout: { name: 'preset' },
       wheelSensitivity: 0.2,
       maxZoom: 3,
       minZoom: 0.1,
@@ -686,16 +682,7 @@ const GraphViewer = forwardRef(({
         // Setup expand-collapse for compound nodes after elements are loaded
         try {
           const expandCollapseAPI = cyRef.current.expandCollapse({
-            layoutBy: {
-              name: 'dagre',
-              nodeSep: 100,
-              edgeSep: 50,
-              rankSep: 150,
-              animate: true,
-              animationDuration: 500,
-              fit: true,
-              padding: 30
-            },
+            layoutBy: null, // Disable automatic layout on expand/collapse
             fisheye: false,
             animate: true,
             ready: function () {
