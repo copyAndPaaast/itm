@@ -11,6 +11,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 
 import store from '../store/index.js'
 import MainLayout from './layouts/MainLayout.jsx'
+import GraphViewerDemo from './components/viewer/GraphViewerDemo.jsx'
 import { DatabaseService } from './services/DatabaseService.js'
 import { setLoading, setSuccess, setError, setWarning, setIdle } from '../store/statusSlice.js'
 import { OverlayProvider } from './components/overlay/OverlayProvider.jsx'
@@ -146,9 +147,12 @@ function AppContent() {
     initializeDatabase()
   }, [dispatch])
 
+  // Simple demo routing - check URL for ?demo parameter
+  const isDemoMode = window.location.search.includes('demo')
+  
   return (
     <OverlayProvider>
-      <MainLayout />
+      {isDemoMode ? <GraphViewerDemo /> : <MainLayout />}
     </OverlayProvider>
   )
 }

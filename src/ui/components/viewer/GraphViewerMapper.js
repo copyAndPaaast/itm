@@ -98,6 +98,12 @@ export class GraphViewerMapper {
    */
   createSingleNodeInstance(node, elements) {
     const businessId = node.nodeId
+    console.log('🔍 MAPPER DEBUG - creating single node:', { 
+      nodeId: node.nodeId, 
+      id: node.id, 
+      businessId, 
+      label: node.title || node.label 
+    })
     const displayId = this.generateDisplayId('node')
     
     // Find parent system compound
@@ -143,6 +149,7 @@ export class GraphViewerMapper {
 
     elements.push(nodeElement)
     this.nodeMapping.set(businessId, displayId)
+    console.log('🔍 MAPPER DEBUG - added to nodeMapping:', businessId, '->', displayId)
   }
 
   /**
@@ -323,6 +330,9 @@ export class GraphViewerMapper {
    */
   getDisplayInstances(businessId) {
     const instances = []
+    
+    console.log('🔍 MAPPER DEBUG - getDisplayInstances for:', businessId)
+    console.log('🔍 MAPPER DEBUG - nodeMapping contents:', Array.from(this.nodeMapping.entries()))
     
     // Check primary mapping
     const primaryId = this.nodeMapping.get(businessId)

@@ -33,14 +33,6 @@ const GraphViewer = forwardRef(({
   onNodesMove = () => {},
   userPermissions = 'viewer',
   
-  // Graph display props
-  title = 'ITM Graph',
-  
-  // System state props
-  currentSystemId = null,
-  currentSystem = null,
-  isEditingSystem = false,
-  
   // Group and system collapse props
   availableGroups = [],
   availableSystems = [],
@@ -54,18 +46,7 @@ const GraphViewer = forwardRef(({
   const containerRef = useRef(null)
   const cyRef = useRef(null)
   const searchServiceRef = useRef(null)
-  const currentSystemIdRef = useRef(currentSystemId)
-  const currentSystemRef = useRef(currentSystem)
-  const isEditingSystemRef = useRef(isEditingSystem)
   const theme = useTheme()
-  
-  // Update refs when props change
-  useEffect(() => {
-    currentSystemIdRef.current = currentSystemId
-    currentSystemRef.current = currentSystem
-    isEditingSystemRef.current = isEditingSystem
-    console.log('🔄 Updated system refs:', { currentSystemId, isEditingSystem })
-  }, [currentSystemId, currentSystem, isEditingSystem])
   
   // Search state
   const [searchValue, setSearchValue] = useState('')
@@ -401,7 +382,9 @@ const GraphViewer = forwardRef(({
               onEventRef.current('create_edge', {
                 sourceId: dragStartNode.id(),
                 targetId: targetNode.id(),
-                edgeId: edgeId
+                edgeId: edgeId,
+                sourceData: dragStartNode.data(),
+                targetData: targetNode.data()
               })
             } else {
               // Create new node and connect
@@ -441,7 +424,9 @@ const GraphViewer = forwardRef(({
               onEventRef.current('create_edge', {
                 sourceId: dragStartNode.id(),
                 targetId: nodeId,
-                edgeId: edgeId
+                edgeId: edgeId,
+                sourceData: dragStartNode.data(),
+                targetData: newNode.data()
               })
             }
           }
@@ -493,51 +478,17 @@ const GraphViewer = forwardRef(({
         
         if (isModifierClick) {
           if (userPermissions === 'editor' || userPermissions === 'admin') {
-            // Check if system is in edit mode for node creation
-            const activeSystemId = currentSystemIdRef.current
-            const activeSystem = currentSystemRef.current
-            const isEditing = isEditingSystemRef.current
+            console.log('Creating node at:', event.position)
             
-            console.log('🔍 Node creation check:', { 
-              activeSystemId, 
-              type: typeof activeSystemId, 
-              isEditing,
-              systemName: activeSystem?.systemName 
-            })
-            
-            if (!activeSystemId) {
-              console.log('⚠️ Node creation requires a selected system')
-              onEventRef.current('create_node_blocked', {
-                reason: 'no_system_selected',
-                message: 'Please select a system first to create nodes'
-              })
-              return
-            }
-            
-            if (!isEditing) {
-              console.log('⚠️ Node creation requires system to be in edit mode')
-              onEventRef.current('create_node_blocked', {
-                reason: 'system_not_editing',
-                message: 'Please activate "Edit System" mode to create nodes'
-              })
-              return
-            }
-            
-            const context = isEditing ? 'editing' : 'selected'
-            console.log(`🎯 Creating node in ${context} system:`, activeSystem?.systemName || activeSystemId)
-            console.log('📍 Position:', event.position)
-            
-            // Create node with system membership
+            // Actually create the node in the graph (like the original implementation)
             const nodeId = `node_${Date.now()}`
             const newNodeData = {
               group: 'nodes',
               data: {
                 id: nodeId,
                 label: `New Node`,
-                type: 'application', // Default type - TODO: Use selected AssetClass
-                assetClass: 'Default', // TODO: Use selected AssetClass
-                systemId: activeSystemId,
-                systemName: activeSystem?.systemName || `System ${activeSystemId}`
+                type: 'application', // Default type
+                assetClass: 'Application'
               },
               position: {
                 x: event.position.x,
@@ -547,14 +498,10 @@ const GraphViewer = forwardRef(({
             
             const newNode = cy.add(newNodeData)
             
-            // Fire event for database persistence and logging
+            // Fire event for logging/monitoring
             onEventRef.current('create_node', {
               nodeId: nodeId,
               position: event.position,
-              systemId: activeSystemId,
-              systemName: activeSystem?.systemName,
-              isEditingSystem: isEditing,
-              context: context,
               nodeData: newNode.data()
             })
           } else {
@@ -720,18 +667,13 @@ const GraphViewer = forwardRef(({
       cyRef.current.add(elements)
     })
     
-    // Apply layout
-    cyRef.current.layout({ 
-      name: 'dagre',
-      nodeSep: 100,
-      edgeSep: 50,
-      rankSep: 150
-    }).run()
+    // Use position data from elements - no automatic layout
+    console.log('📍 Elements updated - using position data from node creation')
     
-    // Fit to viewport and setup expand-collapse after elements are loaded
+    // Setup expand-collapse after elements are loaded (no auto-fit)
     setTimeout(() => {
       if (cyRef.current) {
-        cyRef.current.fit(null, 50)
+        console.log('🔒 Preserving zoom/pan - no auto-fit')
         
         // Setup expand-collapse for compound nodes after elements are loaded
         try {
@@ -838,7 +780,6 @@ const GraphViewer = forwardRef(({
         showTitle={true}
         showSearch={true}
         showMetrics={true}
-        title={title}
         availableGroups={availableGroups}
         availableSystems={availableSystems}
         groupVisibility={groupVisibility}

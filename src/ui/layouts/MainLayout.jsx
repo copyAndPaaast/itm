@@ -18,7 +18,7 @@ import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuc
 import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem, selectCurrentSystemId, selectCurrentSystem, selectSystemViewMode } from '../../store/systemSlice.js'
 import { SYSTEM_VIEW_MODES } from '../../store/systemViewModes.js'
 import { getNodeCount, getEdgeCount, getNodes, getEdges } from '../../store/selectors.js'
-import { addNode, initializeGraph } from '../../store/graphViewerSlice.js'
+import { addNode, addEdge, initializeGraph } from '../../store/graphViewerSlice.js'
 import { GraphViewerMapper } from '../components/viewer/GraphViewerMapper.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
@@ -48,17 +48,23 @@ const MainLayout = ({ children }) => {
   const nodeCount = useSelector(state => currentSystemId ? getNodeCount(state, currentSystemId) : 0)
   const edgeCount = useSelector(state => currentSystemId ? getEdgeCount(state, currentSystemId) : 0)
 
-  // Initialize graph when system changes
+  // Initialize graph when system changes (only if not already initialized)
   useEffect(() => {
     if (currentSystemId && currentSystem) {
-      console.log('🔧 Initializing graph for system:', currentSystemId)
-      dispatch(initializeGraph({ 
-        graphId: currentSystemId, 
-        initialNodes: [], 
-        initialEdges: [] 
-      }))
+      // Check if graph state already exists for this system
+      if (nodes.length === 0 && edges.length === 0) {
+        console.log('🔧 Initializing graph for NEW system:', currentSystemId)
+        dispatch(initializeGraph({ 
+          graphId: currentSystemId, 
+          initialNodes: [], 
+          initialEdges: [] 
+        }))
+      } else {
+        console.log('🔄 Graph already exists for system:', currentSystemId, '- skipping initialization')
+        console.log('  Existing nodes:', nodes.length, 'edges:', edges.length)
+      }
     }
-  }, [currentSystemId, currentSystem, dispatch])
+  }, [currentSystemId, currentSystem, dispatch, nodes.length, edges.length])
 
   // Map Redux state to Cytoscape elements using GraphViewerMapper
   const elements = useMemo(() => {
@@ -70,6 +76,9 @@ const MainLayout = ({ children }) => {
     const mapper = new GraphViewerMapper()
     const mappedElements = mapper.mapToElements(nodes, edges)
     console.log('🔍 GraphViewerMapper: Mapped', nodes.length, 'nodes and', edges.length, 'edges to', mappedElements.length, 'elements')
+    console.log('🔍 Redux nodes:', nodes.map(n => ({ id: n.nodeId || n.id, label: n.label })))
+    console.log('🔍 Redux edges:', edges.map(e => ({ id: e.id, source: e.source, target: e.target, type: e.relationshipType })))
+    console.log('🔍 Mapped elements:', mappedElements.filter(e => e.group === 'edges').map(e => ({ id: e.data.id, source: e.data.source, target: e.data.target })))
     return mappedElements
   }, [nodes, edges, currentSystemId])
 
@@ -82,6 +91,10 @@ const MainLayout = ({ children }) => {
     console.log('  isCreatingSystem:', isCreatingSystem)
     console.log('  nodeCount:', nodeCount, 'edgeCount:', edgeCount)
     console.log('  elements:', elements.length, 'Redux nodes:', nodes.length, 'Redux edges:', edges.length)
+    console.log('  EDGE COUNT MISMATCH CHECK: Redux edges array:', edges.length, 'vs selector edgeCount:', edgeCount)
+    if (edges.length !== edgeCount) {
+      console.log('⚠️ EDGE COUNT MISMATCH! Redux has', edges.length, 'edges but selector returns', edgeCount)
+    }
   }, [currentSystemId, currentSystem, systemViewMode, isCreatingSystem, nodeCount, edgeCount, elements.length, nodes.length, edges.length])
 
   /**
@@ -260,6 +273,55 @@ const MainLayout = ({ children }) => {
             ? `Node added to system "${eventData.systemName}" (currently editing)`
             : `Node created in "${eventData.systemName}"`
           dispatch(showTemporarySuccess(successMessage))
+        }, 500)
+        break
+        
+      case 'create_edge':
+        // Show immediate feedback
+        dispatch(setLoading('Creating edge relationship...'))
+        
+        console.log('🔗 Edge created between:', eventData.sourceId, '->', eventData.targetId)
+        console.log('📝 Edge data:', eventData)
+        
+        // Add edge to Redux graphViewer state
+        if (currentSystemId) {
+          // Extract business node IDs from Cytoscape node data
+          console.log('🔍 DEBUG eventData.sourceData:', eventData.sourceData)
+          console.log('🔍 DEBUG eventData.targetData:', eventData.targetData)
+          console.log('🔍 DEBUG sourceId fallback:', eventData.sourceId)
+          console.log('🔍 DEBUG targetId fallback:', eventData.targetId)
+          
+          const sourceBusinessId = eventData.sourceData?.originalNodeId || eventData.sourceId
+          const targetBusinessId = eventData.targetData?.originalNodeId || eventData.targetId
+          
+          console.log('🔍 DEBUG final business IDs:', { sourceBusinessId, targetBusinessId })
+          
+          const edgeForState = {
+            id: eventData.edgeId,  // GraphViewerMapper expects 'id', not 'edgeId'
+            source: sourceBusinessId,  // Business node ID (matches nodeId in Redux nodes)
+            target: targetBusinessId,  // Business node ID (matches nodeId in Redux nodes)
+            relationshipType: 'connects_to', // Default type - TODO: Use selected RelationshipClass
+            systemId: currentSystemId,
+            properties: {}
+          }
+          
+          console.log('💾 Adding edge to Redux state:', edgeForState)
+          console.log('💾 Dispatching addEdge with graphId:', currentSystemId)
+          dispatch(addEdge({ 
+            graphId: currentSystemId, 
+            edge: edgeForState 
+          }))
+          
+          // Debug: Check Redux state after dispatch
+          setTimeout(() => {
+            console.log('🔍 Redux state after edge creation - edges:', edges.length, 'nodes:', nodes.length)
+            console.log('🔍 All Redux edges:', edges)
+          }, 100)
+        }
+        
+        // Show success message
+        setTimeout(() => {
+          dispatch(showTemporarySuccess('Edge relationship created successfully'))
         }, 500)
         break
         
