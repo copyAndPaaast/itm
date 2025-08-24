@@ -4,7 +4,7 @@
  */
 
 import { createSelector } from '@reduxjs/toolkit'
-import { GraphViewerService } from '../components/visualization/GraphViewerService.js'
+import { GraphViewerService } from '../ui/components/viewer/GraphViewerService.js'
 
 /**
  * Base selectors for accessing graph state
@@ -79,6 +79,19 @@ export const getSelectedEdgeData = createSelector(
   [getEdges, getSelectedEdges],
   (edges, selectedEdgeIds) => 
     edges.filter(edge => selectedEdgeIds.includes(edge.relationshipId || edge.id))
+)
+
+/**
+ * Count selectors - represent unique entities from state, not visual duplicates
+ */
+export const getNodeCount = createSelector(
+  [getNodes],
+  (nodes) => nodes.length
+)
+
+export const getEdgeCount = createSelector(
+  [getEdges], 
+  (edges) => edges.length
 )
 
 /**
@@ -214,15 +227,6 @@ export const getGraphMetrics = createSelector(
   (nodes, edges) => GraphViewerService.calculateMetrics(nodes, edges)
 )
 
-export const getNodeCount = createSelector(
-  [getFilteredNodes],
-  (nodes) => nodes.length
-)
-
-export const getEdgeCount = createSelector(
-  [getFilteredEdges],
-  (edges) => edges.length
-)
 
 export const getGraphDensity = createSelector(
   [getGraphMetrics],

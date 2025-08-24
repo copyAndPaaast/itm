@@ -9,7 +9,7 @@
  * - Viewer section is fixed, other sections in middle column are resizable/collapsible
  */
 
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useMemo } from 'react'
 import { Box, Button, Stack, Typography, Paper } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
@@ -17,6 +17,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../../store/statusSlice.js'
 import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem, selectCurrentSystemId, selectCurrentSystem, selectSystemViewMode } from '../../store/systemSlice.js'
 import { SYSTEM_VIEW_MODES } from '../../store/systemViewModes.js'
+import { getNodeCount, getEdgeCount, getNodes, getEdges } from '../../store/selectors.js'
+import { addNode, initializeGraph } from '../../store/graphViewerSlice.js'
+import { GraphViewerMapper } from '../components/viewer/GraphViewerMapper.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
 import ControlPanel from '../components/layout/ControlPanel/ControlPanel.jsx'
@@ -39,6 +42,37 @@ const MainLayout = ({ children }) => {
   const currentSystem = useSelector(selectCurrentSystem)
   const systemViewMode = useSelector(selectSystemViewMode)
 
+  // Get node and edge data from Redux state
+  const nodes = useSelector(state => currentSystemId ? getNodes(state, currentSystemId) : [])
+  const edges = useSelector(state => currentSystemId ? getEdges(state, currentSystemId) : [])
+  const nodeCount = useSelector(state => currentSystemId ? getNodeCount(state, currentSystemId) : 0)
+  const edgeCount = useSelector(state => currentSystemId ? getEdgeCount(state, currentSystemId) : 0)
+
+  // Initialize graph when system changes
+  useEffect(() => {
+    if (currentSystemId && currentSystem) {
+      console.log('🔧 Initializing graph for system:', currentSystemId)
+      dispatch(initializeGraph({ 
+        graphId: currentSystemId, 
+        initialNodes: [], 
+        initialEdges: [] 
+      }))
+    }
+  }, [currentSystemId, currentSystem, dispatch])
+
+  // Map Redux state to Cytoscape elements using GraphViewerMapper
+  const elements = useMemo(() => {
+    if (!currentSystemId || !nodes.length && !edges.length) {
+      console.log('🔍 No elements to map - returning empty array')
+      return []
+    }
+    
+    const mapper = new GraphViewerMapper()
+    const mappedElements = mapper.mapToElements(nodes, edges)
+    console.log('🔍 GraphViewerMapper: Mapped', nodes.length, 'nodes and', edges.length, 'edges to', mappedElements.length, 'elements')
+    return mappedElements
+  }, [nodes, edges, currentSystemId])
+
   // Debug system state
   useEffect(() => {
     console.log('🔍 MainLayout System State Debug:')
@@ -46,7 +80,9 @@ const MainLayout = ({ children }) => {
     console.log('  currentSystem:', currentSystem)
     console.log('  systemViewMode:', systemViewMode)
     console.log('  isCreatingSystem:', isCreatingSystem)
-  }, [currentSystemId, currentSystem, systemViewMode, isCreatingSystem])
+    console.log('  nodeCount:', nodeCount, 'edgeCount:', edgeCount)
+    console.log('  elements:', elements.length, 'Redux nodes:', nodes.length, 'Redux edges:', edges.length)
+  }, [currentSystemId, currentSystem, systemViewMode, isCreatingSystem, nodeCount, edgeCount, elements.length, nodes.length, edges.length])
 
   /**
    * Determine the graph viewer title based on current system state
@@ -192,11 +228,33 @@ const MainLayout = ({ children }) => {
         const actionType = eventData.isEditingSystem ? 'Adding node to system being edited' : 'Creating node in selected system'
         dispatch(setLoading(actionType + '...'))
         
-        // TODO: Integrate with NodeService for database persistence
         console.log('🎯 Node created in system:', eventData.systemName, 'Context:', eventData.context)
         console.log('📝 Node data:', eventData.nodeData)
         
-        // For now, just show success - later this will be actual database save
+        // Add node to Redux graphViewer state
+        if (currentSystemId) {
+          const nodeForState = {
+            nodeId: eventData.nodeId,
+            id: eventData.nodeId,
+            label: eventData.nodeData.label,
+            type: eventData.nodeData.type,
+            assetClass: eventData.nodeData.assetClass,
+            systemId: eventData.systemId,
+            systemName: eventData.systemName,
+            position: eventData.position,
+            systems: [eventData.systemName],
+            groups: [],
+            properties: {}
+          }
+          
+          console.log('💾 Adding node to Redux state:', nodeForState)
+          dispatch(addNode({ 
+            graphId: currentSystemId, 
+            node: nodeForState 
+          }))
+        }
+        
+        // Show success message
         setTimeout(() => {
           const successMessage = eventData.isEditingSystem 
             ? `Node added to system "${eventData.systemName}" (currently editing)`
@@ -289,13 +347,15 @@ const MainLayout = ({ children }) => {
                   id="viewer-panel"
                 >
                   <GraphViewer
-                    elements={[]}
+                    elements={elements}
                     style={{ height: '100%', width: '100%' }}
                     title={getGraphViewerTitle()}
                     userPermissions="editor"
                     currentSystemId={currentSystemId}
                     currentSystem={currentSystem}
                     isEditingSystem={isEditingSystem}
+                    nodeCount={nodeCount}
+                    edgeCount={edgeCount}
                     onEvent={handleGraphViewerEvent}
                   />
                 </Panel>
