@@ -30,6 +30,7 @@ import {
 import { SYSTEM_VIEW_MODES } from '../../store/systemViewModes.js'
 import { getNodeCount, getEdgeCount, getNodes, getEdges } from '../../store/selectors.js'
 import { addNode, addEdge, initializeGraph } from '../../store/graphViewerSlice.js'
+import { createNodeAction } from '../../NodeModule/node/NodeActions.js'
 import { GraphViewerMapper } from '../components/viewer/GraphViewerMapper.js'
 import Header from '../components/layout/Header/Header.jsx'
 import Footer from '../components/layout/Footer/Footer.jsx'
