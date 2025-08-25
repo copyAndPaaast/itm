@@ -6,7 +6,7 @@
  */
 
 import { NodeService } from './NodeService.js'
-import { addNode, updateNode, removeNode } from '../../store/graphViewerSlice.js'
+import { addNode, updateNode, deleteNode } from '../../store/graphViewerSlice.js'
 import { executeWithStatus } from '../../store/statusSlice.js'
 
 /**
@@ -143,7 +143,7 @@ export const deleteNodeAction = (deleteData) => {
       
       // Remove from Redux state
       if (deleteData.systemId) {
-        dispatch(removeNode({
+        dispatch(deleteNode({
           graphId: deleteData.systemId,
           nodeId: deleteData.nodeId
         }))

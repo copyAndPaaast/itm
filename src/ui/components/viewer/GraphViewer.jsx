@@ -431,7 +431,7 @@ const GraphViewer = forwardRef(({
                   id: nodeId,
                   label: `New Node`,
                   type: 'application',
-                  assetClass: 'Application'
+                  assetClass: 'Default'
                 },
                 position: {
                   x: event.position.x,
@@ -523,7 +523,7 @@ const GraphViewer = forwardRef(({
                 id: nodeId,
                 label: `New Node`,
                 type: 'application', // Default type
-                assetClass: 'Application'
+                assetClass: 'Default'
               },
               position: {
                 x: event.position.x,

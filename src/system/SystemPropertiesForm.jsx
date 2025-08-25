@@ -1,16 +1,16 @@
 /**
  * SystemPropertiesForm - System creation and editing form
- * 
+ *
  * Domain-specific component for system properties management.
  * Handles creation of new systems and editing existing system properties.
  */
 
 import React, { useEffect } from 'react'
-import { 
-  Box, 
-  TextField, 
-  Typography, 
-  Button, 
+import {
+  Box,
+  TextField,
+  Typography,
+  Button,
   Stack,
   Paper,
   Divider,
@@ -18,20 +18,24 @@ import {
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useDispatch, useSelector } from 'react-redux'
-import { 
-  selectSystemFormData, 
+import {
+  selectSystemFormData,
   selectIsCreatingSystem,
   selectIsEditingSystem,
   selectCurrentSystemId,
   selectCurrentSystem,
-  selectError, 
+  selectError,
   selectIsLoading,
-  updateSystemFormData, 
+  updateSystemFormData,
   clearSystemFormData
 } from '../store/systemSlice.js'
 import { createSystemAction } from './SystemActions.js'
 import { startEditSystem } from '../store/systemSlice.js'
 import { PermissionService } from '../user/PermissionService.js'
+import { getNodes, getEdges } from '../store/selectors.js'
+import { NodeService } from '../NodeModule/node/NodeService.js'
+import { RelationshipService } from '../RelationModule/relationship/RelationshipService.js'
+import { addNode, updateNode, addEdge, updateEdge } from '../store/graphViewerSlice.js'
 
 /**
  * Create system properties form styles
@@ -43,24 +47,24 @@ const createSystemFormStyles = (theme) => ({
     display: 'flex',
     flexDirection: 'column'
   },
-  
+
   formHeader: {
     mb: 2
   },
-  
+
   formFields: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(2)
   },
-  
+
   formActions: {
     mt: 2,
     pt: 2,
     borderTop: `1px solid ${theme.palette.divider}`
   },
-  
+
   helperText: {
     fontSize: theme.typography.caption.fontSize,
     color: theme.palette.text.secondary,
@@ -72,7 +76,7 @@ const SystemPropertiesForm = () => {
   const theme = useTheme()
   const styles = createSystemFormStyles(theme)
   const dispatch = useDispatch()
-  
+
   // Redux state
   const formData = useSelector(selectSystemFormData)
   const isCreatingSystem = useSelector(selectIsCreatingSystem)
@@ -82,26 +86,30 @@ const SystemPropertiesForm = () => {
   const error = useSelector(selectError)
   const isLoading = useSelector(selectIsLoading)
 
+  // Get current system's nodes and edges for saving
+  const currentNodes = useSelector(state => currentSystemId ? getNodes(state, currentSystemId) : [])
+  const currentEdges = useSelector(state => currentSystemId ? getEdges(state, currentSystemId) : [])
+
   /**
    * Populate form data when currentSystem changes (for viewing mode)
    */
   useEffect(() => {
     if (currentSystem && !isCreatingSystem && !isEditingSystem) {
       console.log('📝 Populating form with current system data:', currentSystem)
-      
+
       // Parse properties if they're stored as JSON string
       let properties = {}
       if (currentSystem.properties) {
         try {
-          properties = typeof currentSystem.properties === 'string' 
-            ? JSON.parse(currentSystem.properties) 
+          properties = typeof currentSystem.properties === 'string'
+            ? JSON.parse(currentSystem.properties)
             : currentSystem.properties
         } catch (error) {
           console.warn('Failed to parse system properties:', error)
           properties = {}
         }
       }
-      
+
       dispatch(updateSystemFormData({
         systemName: currentSystem.systemName || '',
         systemLabel: currentSystem.systemLabel || '',
@@ -140,10 +148,136 @@ const SystemPropertiesForm = () => {
    * Handle save system changes (edit mode)
    */
   const handleSave = async () => {
-    // TODO: Implement system update action
-    console.log('Save system changes:', formData)
-    // For now, just show success message
-    dispatch(clearSystemFormData())
+    console.log('💾 Starting save process...')
+    console.log('📝 System form data:', formData)
+    console.log('🔍 Current nodes to save:', currentNodes)
+    console.log('🔍 Current edges to save:', currentEdges)
+
+    try {
+      const nodeService = new NodeService()
+      const relationshipService = new RelationshipService()
+      
+      // Separate new items from existing items
+      const newNodes = currentNodes.filter(node => 
+        !node.nodeId || String(node.nodeId).startsWith('node_')
+      )
+      const existingNodes = currentNodes.filter(node => 
+        node.nodeId && !String(node.nodeId).startsWith('node_')
+      )
+      const newEdges = currentEdges.filter(edge => 
+        !edge.relationshipId || String(edge.relationshipId).startsWith('edge_')
+      )
+      const existingEdges = currentEdges.filter(edge => 
+        edge.relationshipId && !String(edge.relationshipId).startsWith('edge_')
+      )
+      
+      console.log('📊 Summary:', {
+        newNodes: newNodes.length,
+        existingNodes: existingNodes.length, 
+        newEdges: newEdges.length,
+        existingEdges: existingEdges.length
+      })
+      
+      // Step 1: Update existing nodes individually
+      for (const node of existingNodes) {
+        console.log('🔄 UPDATE node:', node.nodeId, node.label)
+        
+        const updateProperties = {
+          ...node.properties,
+          positionX: node.position?.x || 0,
+          positionY: node.position?.y || 0
+        }
+        
+        await nodeService.updateNode(node.nodeId, updateProperties)
+      }
+      
+      // Step 2: Update existing edges individually
+      for (const edge of existingEdges) {
+        console.log('🔄 UPDATE edge:', edge.relationshipId, edge.source, '→', edge.target)
+        await relationshipService.updateRelationship(edge.relationshipId, edge.properties || {})
+      }
+      
+      // Step 3: Create new nodes and edges together using temp IDs as names
+      if (newNodes.length > 0 || newEdges.length > 0) {
+        console.log('🆕 Creating new nodes and edges in bulk using temp IDs as names')
+        
+        await createNodesAndEdgesBulk(newNodes, newEdges, currentSystem.systemLabel)
+      }
+
+      console.log('✅ Save completed successfully')
+      // TODO: Refresh Redux state with new Neo4j data
+      // TODO: Show success message to user
+      
+    } catch (error) {
+      console.error('❌ Save failed:', error)
+      // TODO: Show error message to user
+    }
+  }
+  
+  /**
+   * Create nodes and edges in a single bulk operation using temp IDs as names
+   */
+  const createNodesAndEdgesBulk = async (newNodes, newEdges, systemLabel) => {
+    const session = new NodeService().neo4jService.getSession()
+    
+    try {
+      // Build Cypher query parts
+      let nodeCreateStatements = []
+      let edgeCreateStatements = []
+      let returnStatements = []
+      
+      // Create node statements using temp ID as name
+      newNodes.forEach((node, index) => {
+        const nodeVar = `n${index}`
+        const tempId = node.id || node.nodeId
+        const nodeName = node.label || node.title || tempId
+        
+        nodeCreateStatements.push(`
+          (${nodeVar}:Asset:Default:${systemLabel} {
+            name: '${nodeName}',
+            positionX: ${node.position?.x || 0},
+            positionY: ${node.position?.y || 0}
+          })
+        `)
+        
+        returnStatements.push(nodeVar)
+      })
+      
+      // Create edge statements using temp IDs to find source/target nodes
+      newEdges.forEach((edge, index) => {
+        const sourceNodeIndex = newNodes.findIndex(n => 
+          (n.id || n.nodeId) === edge.source
+        )
+        const targetNodeIndex = newNodes.findIndex(n => 
+          (n.id || n.nodeId) === edge.target
+        )
+        
+        if (sourceNodeIndex >= 0 && targetNodeIndex >= 0) {
+          edgeCreateStatements.push(`
+            (n${sourceNodeIndex})-[:CONNECTS_TO {
+              connection_type: '${edge.relationshipType || 'connects_to'}'
+            }]->(n${targetNodeIndex})
+          `)
+        }
+      })
+      
+      // Combine into single CREATE statement
+      const createStatement = `
+        CREATE 
+          ${nodeCreateStatements.join(',\n')}
+          ${edgeCreateStatements.length > 0 ? ',\n' + edgeCreateStatements.join(',\n') : ''}
+        RETURN ${returnStatements.join(', ')}
+      `
+      
+      console.log('🔥 Bulk CREATE Cypher:', createStatement)
+      
+      const result = await session.run(createStatement)
+      
+      console.log('✅ Bulk create completed:', result.records.length, 'nodes created')
+      
+    } finally {
+      await session.close()
+    }
   }
 
   /**
@@ -176,14 +310,14 @@ const SystemPropertiesForm = () => {
    * Validate form data
    */
   const isFormValid = () => {
-    return formData.systemName.trim() && 
-           formData.systemLabel.trim() && 
+    return formData.systemName.trim() &&
+           formData.systemLabel.trim() &&
            /^[A-Za-z][A-Za-z0-9_]*$/.test(formData.systemLabel)
   }
 
   // Show form if creating, editing, or has active system
   const hasActiveSystem = currentSystemId || isCreatingSystem || isEditingSystem
-  
+
   if (!hasActiveSystem) {
     return (
       <Box sx={styles.formContainer}>
@@ -203,12 +337,12 @@ const SystemPropertiesForm = () => {
       {/* Form Header */}
       <Box sx={styles.formHeader}>
         <Typography variant="h6" gutterBottom>
-          {isCreating ? 'Create New System' : 
-           isEditing ? 'Edit System' : 
+          {isCreating ? 'Create New System' :
+           isEditing ? 'Edit System' :
            'System Properties'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {isCreating 
+          {isCreating
             ? 'Define a new system with its properties and configuration.'
             : isEditing
             ? 'Modify the system properties and save changes.'
@@ -288,7 +422,7 @@ const SystemPropertiesForm = () => {
           >
             {isViewing ? 'Close' : 'Cancel'}
           </Button>
-          
+
           {isCreating && (
             <Button
               variant="contained"
@@ -299,7 +433,7 @@ const SystemPropertiesForm = () => {
               {isLoading ? 'Creating...' : 'Create System'}
             </Button>
           )}
-          
+
           {isViewing && (
             <Button
               variant="contained"
@@ -310,7 +444,7 @@ const SystemPropertiesForm = () => {
               Edit System
             </Button>
           )}
-          
+
           {isEditing && (
             <>
               <Button

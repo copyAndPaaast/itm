@@ -324,6 +324,88 @@ showEditor('Edit Node Types', <Editor />, <SaveCancel />)
 
 **Result**: Professional node creation workflow that requires deliberate system editing activation, ensuring controlled and context-aware IT asset management.
 
+---
+
+## 🎯 **MILESTONE: Draft/Save Workflow with ID Mapping Architecture** - *August 25, 2025*
+**Proper batch persistence system with multi-system asset visualization support**
+
+### **Key Architecture Understanding:**
+
+#### **Draft/Save Workflow:**
+1. **User draws nodes/edges visually** → Immediate visual feedback with temporary display IDs
+2. **No immediate Neo4j persistence** → Changes remain as "draft" in Redux state
+3. **User clicks "Save Changes"** → Batch processes all visual elements
+4. **CREATE vs UPDATE logic** → Based on whether elements have real Neo4j IDs
+5. **Redux state updates** → Temp elements replaced with real Neo4j data
+
+#### **ID Mapping System Purpose:**
+**GraphViewerMapper creates display IDs specifically for multi-system asset visualization:**
+
+- **Single Neo4j node** (ID: `64`) can appear as **multiple Cytoscape elements**:
+  - `64_SystemA` (display ID for System A view)  
+  - `64_SystemB` (display ID for System B view)
+  - `node_1234567890` (temporary ID for new nodes)
+
+- **Edge resolution** maps display IDs back to real Neo4j node IDs:
+  - `edge.source = "64_SystemA"` → `realNodeId = "64"`
+  - `edge.target = "node_1234567890"` → `realNodeId = "67"` (after node creation)
+
+### **Save Implementation:**
+**File:** `src/system/SystemPropertiesForm.jsx` - `handleSave()` function
+
+#### **Node Processing:**
+```javascript
+// CREATE vs UPDATE logic
+const hasRealId = node.nodeId && !String(node.nodeId).startsWith('node_')
+
+if (hasRealId) {
+  // UPDATE: Existing node with position properties
+  await nodeService.updateNode(node.nodeId, updateProperties)
+} else {
+  // CREATE: New node with Default AssetClass + system label + position
+  const createdNode = await nodeService.createNode(
+    'Default',
+    nodeProperties,
+    nodeTitle,
+    [currentSystem.systemLabel]
+  )
+  // Map temp display ID to real Neo4j ID
+  nodeIdMapping.set(tempId, createdNode.nodeId)
+}
+```
+
+#### **Edge Processing:**
+```javascript
+// Resolve display IDs to real Neo4j IDs using mapping
+const sourceId = nodeIdMapping.get(String(edge.source)) || edge.source
+const targetId = nodeIdMapping.get(String(edge.target)) || edge.target
+
+// CREATE relationship with Default RelationshipClass
+const createdRelationship = await relationshipService.createRelationship({
+  fromId: sourceId,
+  toId: targetId,
+  relationshipClassId: 'Default',
+  properties: { connection_type: edge.relationshipType || 'connects_to' }
+})
+```
+
+### **Technical Benefits:**
+- **Multi-System Visualization**: Same IT asset appears in multiple system contexts
+- **Batch Persistence**: Controlled save workflow prevents premature database writes
+- **ID Resolution**: Seamless mapping between visual elements and database entities
+- **Position Storage**: Node coordinates stored as Neo4j properties (`positionX`, `positionY`)
+- **System Context**: All nodes created with proper system labels for ITAM organization
+
+### **ITM Business Value:**
+- **Visual Draft Mode**: Users can experiment with asset layouts before committing
+- **Multi-System Assets**: Critical for representing shared infrastructure (e.g., databases used by multiple applications)
+- **Audit Trail**: Clear distinction between visual changes and persistent data changes
+- **Data Integrity**: Prevents partial saves and maintains consistent system state
+
+**Result**: Professional ITM workflow supporting complex asset relationships with proper visual representation and controlled persistence.
+
+---
+
 ## Organizational Rules
 
 ### Permission Management

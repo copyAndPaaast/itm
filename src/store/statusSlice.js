@@ -158,7 +158,7 @@ export const showTemporaryError = (message, details = null, delay = 5000) => (di
 export const executeWithStatus = (loadingMessage, asyncOperation, successMessage = 'Operation completed') => async (dispatch) => {
   try {
     dispatch(setLoading(loadingMessage))
-    const result = await asyncOperation()
+    const result = await asyncOperation(dispatch) // Pass dispatch to asyncOperation
     dispatch(showTemporarySuccess(successMessage))
     return result
   } catch (error) {
