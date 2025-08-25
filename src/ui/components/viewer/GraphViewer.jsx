@@ -1,6 +1,6 @@
 /**
  * GraphViewer - Pure React View Component
- * 
+ *
  * Clean component focused only on rendering with V1 styling system
  */
 
@@ -32,7 +32,7 @@ const GraphViewer = forwardRef(({
   onCytoscapeReady = () => {},
   onNodesMove = () => {},
   userPermissions = 'viewer',
-  
+
   // System context props
   currentSystemId,
   currentSystem,
@@ -40,7 +40,7 @@ const GraphViewer = forwardRef(({
   title,
   nodeCount,
   edgeCount,
-  
+
   // Group and system collapse props
   availableGroups = [],
   availableSystems = [],
@@ -49,23 +49,23 @@ const GraphViewer = forwardRef(({
   onGroupToggle = () => {},
   onSystemToggle = () => {},
   systemViewMode = 'single',
-  
+
   ...props
 }, ref) => {
   const containerRef = useRef(null)
   const cyRef = useRef(null)
   const searchServiceRef = useRef(null)
   const theme = useTheme()
-  
+
   // Search state
   const [searchValue, setSearchValue] = useState('')
   const [searchResults, setSearchResults] = useState([])
-  
+
   // Use refs for stable callback references
   const onEventRef = useRef(onEvent)
   const onCytoscapeReadyRef = useRef(onCytoscapeReady)
   const onNodesMoveRef = useRef(onNodesMove)
-  
+
   // Update refs when props change
   onEventRef.current = onEvent
   onCytoscapeReadyRef.current = onCytoscapeReady
@@ -76,7 +76,7 @@ const GraphViewer = forwardRef(({
    */
   const handleSearch = useCallback((query) => {
     setSearchValue(query)
-    
+
     if (searchServiceRef.current) {
       if (query.trim()) {
         const matches = searchServiceRef.current.searchHighlightAndFocus(query)
@@ -131,7 +131,7 @@ const GraphViewer = forwardRef(({
               animate: true,
               animationDuration: 500
             }
-            
+
             // Add specific configuration for different layouts
             if (eventData.layoutType === 'dagre') {
               layoutConfig.nodeSep = 100
@@ -143,7 +143,7 @@ const GraphViewer = forwardRef(({
               layoutConfig.maxSimulationTime = 2000
               layoutConfig.nodeSpacing = 100
             }
-            
+
             cyRef.current.layout(layoutConfig).run()
             console.log(`🎨 Applied ${eventData.layoutType} layout`)
           } else if (eventData.action === 'dagre') {
@@ -206,12 +206,12 @@ const GraphViewer = forwardRef(({
    */
   const setupInteractiveFeatures = useCallback((cy) => {
     console.log('🎯 Setting up custom drag-to-connect system')
-    
+
     // State for drag-to-connect
     let isDragging = false
     let dragStartNode = null
     let tempEdge = null
-    
+
     // Enhanced hover effects
     cy.on('mouseover', 'node', (event) => {
       const node = event.target
@@ -219,7 +219,7 @@ const GraphViewer = forwardRef(({
         node.style('border-color', '#0074cc')
         node.style('border-width', 10)
       }
-      
+
       onEventRef.current('node_hover', {
         nodeId: node.id(),
         nodeData: node.data(),
@@ -233,12 +233,12 @@ const GraphViewer = forwardRef(({
         // Restore original border color based on node type
         const nodeType = node.data('type') || 'unknown'
         let originalColor = '#666666' // default
-        
+
         if (nodeType === 'server') originalColor = '#388E3C'
-        else if (nodeType === 'database') originalColor = '#F57C00'  
+        else if (nodeType === 'database') originalColor = '#F57C00'
         else if (nodeType === 'application') originalColor = '#7B1FA2'
         else if (nodeType === 'network') originalColor = '#1976D2'
-        
+
         node.style('border-color', originalColor)
         node.style('border-width', 2)
       }
@@ -247,30 +247,30 @@ const GraphViewer = forwardRef(({
     // Border click detection for edge creation
     cy.on('mousedown', 'node', (event) => {
       const node = event.target
-      
+
       // Skip for hull groups and compound nodes
       if (node.hasClass('group-hull') || node.data('isCompound')) {
         return
       }
-      
+
       // Only allow edge creation for editors/admins
       if (userPermissions !== 'editor' && userPermissions !== 'admin') {
         node.select()
         return
       }
-      
+
       // Check if click is on the border (edge creation zone)
       const mousePos = event.position || event.cyPosition
       const nodePos = node.position()
       const nodeSize = node.width()
-      
+
       const distance = Math.sqrt(
-        Math.pow(mousePos.x - nodePos.x, 2) + 
+        Math.pow(mousePos.x - nodePos.x, 2) +
         Math.pow(mousePos.y - nodePos.y, 2)
       )
-      
+
       const borderThickness = 8
-      
+
       if (distance > (nodeSize/2 - borderThickness)) {
         // Border click - start edge creation
         console.log('🎯 Border click detected - starting edge creation')
@@ -279,7 +279,7 @@ const GraphViewer = forwardRef(({
         node.ungrabify()
         event.stopPropagation()
         event.preventDefault()
-        
+
         onEventRef.current('edge_creation_start', {
           sourceId: node.id(),
           sourceData: node.data()
@@ -314,7 +314,7 @@ const GraphViewer = forwardRef(({
           // Create temporary target node
           const tempNode = cy.add({
             group: 'nodes',
-            data: { 
+            data: {
               id: tempNodeId,
               label: 'temp-target'
             },
@@ -355,20 +355,20 @@ const GraphViewer = forwardRef(({
         // Only create edges if user has permissions
         if (userPermissions === 'editor' || userPermissions === 'admin') {
           const targetNode = event.target
-          
-          if (targetNode !== cy && targetNode.isNode() && !targetNode.hasClass('temp-node') && 
+
+          if (targetNode !== cy && targetNode.isNode() && !targetNode.hasClass('temp-node') &&
               !targetNode.hasClass('group-hull') && !targetNode.data('isCompound')) {
-            
+
             // Prevent self-loops (same source and target)
             if (targetNode.id() === dragStartNode.id()) {
               console.log('🚫 Preventing self-loop creation')
               return
             }
-            
+
             // Connect to existing node
             console.log('✅ Creating edge between nodes')
             const edgeId = `edge_${dragStartNode.id()}_${targetNode.id()}_${Date.now()}`
-            
+
             cy.add({
               group: 'edges',
               data: {
@@ -378,7 +378,7 @@ const GraphViewer = forwardRef(({
                 relationshipType: 'connects_to'
               }
             })
-            
+
             onEventRef.current('create_edge', {
               sourceId: dragStartNode.id(),
               targetId: targetNode.id(),
@@ -403,7 +403,7 @@ const GraphViewer = forwardRef(({
               const targetNode = nodeAtPosition[0]
               console.log('✅ Creating edge to node at position')
               const edgeId = `edge_${dragStartNode.id()}_${targetNode.id()}_${Date.now()}`
-              
+
               cy.add({
                 group: 'edges',
                 data: {
@@ -413,7 +413,7 @@ const GraphViewer = forwardRef(({
                   relationshipType: 'connects_to'
                 }
               })
-              
+
               onEventRef.current('create_edge', {
                 sourceId: dragStartNode.id(),
                 targetId: targetNode.id(),
@@ -438,7 +438,7 @@ const GraphViewer = forwardRef(({
                   y: event.position.y
                 }
               })
-              
+
               const edgeId = `edge_${dragStartNode.id()}_${nodeId}_${Date.now()}`
               cy.add({
                 group: 'edges',
@@ -449,13 +449,13 @@ const GraphViewer = forwardRef(({
                   relationshipType: 'connects_to'
                 }
               })
-              
+
               onEventRef.current('create_node', {
                 nodeId: nodeId,
                 position: event.position,
                 nodeData: newNode.data()
               })
-              
+
               onEventRef.current('create_edge', {
                 sourceId: dragStartNode.id(),
                 targetId: nodeId,
@@ -467,7 +467,7 @@ const GraphViewer = forwardRef(({
           }
         }
       }
-      
+
       // Reset drag state
       isDragging = false
       dragStartNode = null
@@ -478,7 +478,7 @@ const GraphViewer = forwardRef(({
     const setupSimpleTooltips = () => {
       cy.nodes().forEach(node => {
         if (node.hasClass('group-hull')) return
-        
+
         const nodeData = node.data()
         const tooltipText = [
           `${nodeData.label || nodeData.id}`,
@@ -487,7 +487,7 @@ const GraphViewer = forwardRef(({
           nodeData.systems ? `Systems: ${nodeData.systems.join(', ')}` : '',
           nodeData.groups ? `Groups: ${nodeData.groups.join(', ')}` : ''
         ].filter(Boolean).join('\n')
-        
+
         // Add title attribute for native browser tooltips
         node.data('tooltip', tooltipText)
       })
@@ -501,7 +501,7 @@ const GraphViewer = forwardRef(({
       if (event.target === cy) { // Clicked on background
         const originalEvent = event.originalEvent
         const isModifierClick = originalEvent && (originalEvent.ctrlKey || originalEvent.metaKey)
-        
+
         console.log('Background click detected:', {
           hasOriginalEvent: !!originalEvent,
           ctrlKey: originalEvent?.ctrlKey,
@@ -510,11 +510,11 @@ const GraphViewer = forwardRef(({
           userPermissions,
           position: event.position
         })
-        
+
         if (isModifierClick) {
           if (userPermissions === 'editor' || userPermissions === 'admin') {
             console.log('Creating node at:', event.position)
-            
+
             // Actually create the node in the graph (like the original implementation)
             const nodeId = `node_${Date.now()}`
             const newNodeData = {
@@ -530,9 +530,9 @@ const GraphViewer = forwardRef(({
                 y: event.position.y
               }
             }
-            
+
             const newNode = cy.add(newNodeData)
-            
+
             // Fire event for logging/monitoring
             onEventRef.current('create_node', {
               nodeId: nodeId,
@@ -556,9 +556,9 @@ const GraphViewer = forwardRef(({
     cy.on('tap', 'node', (event) => {
       const node = event.target
       if (node.hasClass('group-hull')) return
-      
+
       const originalEvent = event.originalEvent
-      
+
       onEventRef.current('node_click', {
         nodeId: node.id(),
         nodeData: node.data(),
@@ -571,7 +571,7 @@ const GraphViewer = forwardRef(({
     cy.on('dbltap', 'node', (event) => {
       const node = event.target
       if (node.hasClass('group-hull')) return
-      
+
       onEventRef.current('node_double_click', {
         nodeId: node.id(),
         nodeData: node.data(),
@@ -583,7 +583,7 @@ const GraphViewer = forwardRef(({
     cy.on('tap', 'edge', (event) => {
       const edge = event.target
       if (edge.hasClass('temp-edge')) return
-      
+
       onEventRef.current('edge_click', {
         edgeId: edge.id(),
         edgeData: edge.data(),
@@ -596,9 +596,9 @@ const GraphViewer = forwardRef(({
     cy.on('dbltap', 'edge', (event) => {
       const edge = event.target
       if (edge.hasClass('temp-edge')) return
-      
+
       onEventRef.current('edge_double_click', {
-        edgeId: edge.id(), 
+        edgeId: edge.id(),
         edgeData: edge.data(),
         sourceId: edge.source().id(),
         targetId: edge.target().id(),
@@ -612,8 +612,6 @@ const GraphViewer = forwardRef(({
   useEffect(() => {
     if (!containerRef.current || cyRef.current) return
 
-    console.log('GraphViewer: Initializing Cytoscape with V1 styling system')
-    
     const cy = cytoscape({
       container: containerRef.current,
       style: buildCytoscapeStyle({}, theme),
@@ -633,13 +631,13 @@ const GraphViewer = forwardRef(({
 
     cyRef.current = cy
     console.log('GraphViewer: Cytoscape initialized successfully')
-    
+
     // Initialize search service
     searchServiceRef.current = new GraphSearchService(cy)
     console.log('🔍 Search service initialized')
-    
+
     // Setup node move listeners for hull auto-refresh
-    
+
     cy.on('position', 'node', (event) => {
       const node = event.target
       if (!node.hasClass('group-hull') && !node.data('isCompound')) {
@@ -650,7 +648,7 @@ const GraphViewer = forwardRef(({
         }, 100)
       }
     })
-    
+
     // Listen to drag events for immediate feedback
     cy.on('drag', 'node', (event) => {
       const node = event.target
@@ -661,7 +659,7 @@ const GraphViewer = forwardRef(({
         }, 50) // Faster updates during drag
       }
     })
-    
+
     // Listen to free (end of drag) events for final update
     cy.on('free', 'node', (event) => {
       const node = event.target
@@ -669,10 +667,10 @@ const GraphViewer = forwardRef(({
         onNodesMoveRef.current() // Immediate final update
       }
     })
-    
+
     // Setup interactive features
     setupInteractiveFeatures(cy)
-    
+
     // Notify parent component that Cytoscape is ready
     onCytoscapeReadyRef.current(cy)
 
@@ -690,22 +688,17 @@ const GraphViewer = forwardRef(({
   // Update elements when data changes
   useEffect(() => {
     if (!cyRef.current) return
-    
-    console.log(`GraphViewer: Updating ${elements.length} elements`)
-    
+
     cyRef.current.batch(() => {
       cyRef.current.elements().remove()
       cyRef.current.add(elements)
     })
-    
-    // Use position data from elements - no automatic layout
-    console.log('📍 Elements updated - using position data from node creation')
-    
+
     // Setup expand-collapse after elements are loaded (no auto-fit)
     setTimeout(() => {
       if (cyRef.current) {
         console.log('🔒 Preserving zoom/pan - no auto-fit')
-        
+
         // Setup expand-collapse for compound nodes after elements are loaded
         try {
           const expandCollapseAPI = cyRef.current.expandCollapse({
@@ -715,7 +708,7 @@ const GraphViewer = forwardRef(({
             ready: function () {
               const systemNodes = cyRef.current.nodes('[compoundType = "system"]')
               console.log('🔧 Expand-collapse extension ready with', systemNodes.length, 'system compounds')
-              
+
               // Debug: Log system node details
               systemNodes.forEach(node => {
                 console.log('System compound:', {
@@ -726,7 +719,7 @@ const GraphViewer = forwardRef(({
                   children: node.children().length
                 })
               })
-              
+
               // Debug: Check if cues are enabled and visible
               console.log('🎯 Checking expand-collapse state...')
               const api = cyRef.current.expandCollapse('get')
@@ -761,18 +754,18 @@ const GraphViewer = forwardRef(({
               setTimeout(() => onNodesMoveRef.current(), 100)
             }
           })
-          
+
           // Store expand-collapse API reference for external access
           cyRef.current._expandCollapseAPI = expandCollapseAPI
-          
+
           console.log('🎯 Expand-collapse setup complete for system compounds')
         } catch (error) {
           console.error('❌ Error setting up expand-collapse:', error)
         }
-        
+
       }
     }, 200) // Increased timeout to ensure layout completion
-    
+
   }, [elements])
 
   return (

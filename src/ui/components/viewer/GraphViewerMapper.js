@@ -1,9 +1,13 @@
 /**
  * GraphViewerMapper - Data Transformation Layer
- * 
+ *
  * Handles mapping from business data to Cytoscape elements
  * Supports both systems (compounds) and groups (hulls)
  */
+
+import { store } from '../../../store/index.js'
+import { useSystemDisplayNameLookup } from '../../../selectors/SystemManagementSelectors.js'
+import { selectSystems } from '../../../store/systemSlice.js'
 
 export class GraphViewerMapper {
   constructor() {
@@ -24,7 +28,7 @@ export class GraphViewerMapper {
    */
   mapToElements(nodes, edges, options = {}) {
     const { groupVisibility = {}, systemCollapsed = {} } = options
-    
+
     // Reset mappings
     this.nodeMapping.clear()
     this.systemCompounds.clear()
@@ -34,7 +38,7 @@ export class GraphViewerMapper {
     // Step 1: Create system compounds (with collapse state)
     this.createSystemCompounds(nodes, elements, systemCollapsed)
 
-    // Step 2: Create nodes  
+    // Step 2: Create nodes
     this.createNodes(nodes, elements)
 
     // Step 3: Create edges
@@ -52,34 +56,47 @@ export class GraphViewerMapper {
    * Create system compound elements
    */
   createSystemCompounds(nodes, elements, systemCollapsed = {}) {
-    const systems = new Set()
-    
-    // Collect all system names
+    const systemLabels = new Set()
+
+    // Collect all system labels, filtering out undefined values
     nodes.forEach(node => {
       if (node.systems && node.systems.length > 0) {
-        node.systems.forEach(system => systems.add(system))
+        node.systems.forEach(systemLabel => {
+          if (systemLabel !== undefined && systemLabel !== null) {
+            systemLabels.add(systemLabel)
+          }
+        })
       }
     })
 
+    // Get systems data from Redux store for label-to-name mapping
+    const systemsData = selectSystems(store.getState())
+
     // Create compound for each system
-    systems.forEach(systemName => {
+    systemLabels.forEach(systemLabel => {
       const compoundId = this.generateDisplayId('system')
-      const isCollapsed = systemCollapsed[systemName] === true
-      
+      const isCollapsed = systemCollapsed[systemLabel] === true
+
+      // Find system data to get proper display name
+      const systemData = systemsData.find(sys => sys.systemLabel === systemLabel)
+      const displayName = systemData?.systemName || systemLabel
+
       elements.push({
         group: 'nodes',
         data: {
           id: compoundId,
-          label: `System: ${systemName}`,
+          label: `System: ${displayName}`,
           isCompound: true,
           compoundType: 'system',
-          systemName: systemName,
+          systemName: systemLabel, // Keep systemLabel for identification
+          systemLabel: systemLabel,
+          systemDisplayName: displayName,
           collapsed: isCollapsed
         },
         classes: `system-compound ${isCollapsed ? 'collapsed' : 'expanded'}`
       })
 
-      this.systemCompounds.set(systemName, compoundId)
+      this.systemCompounds.set(systemLabel, compoundId)
     })
   }
 
@@ -90,7 +107,7 @@ export class GraphViewerMapper {
     nodes.forEach(node => {
       const businessId = node.nodeId
       const systems = node.systems || []
-      
+
       if (systems.length <= 1) {
         // Single system or no system - create single instance
         this.createSingleNodeInstance(node, elements)
@@ -106,14 +123,14 @@ export class GraphViewerMapper {
    */
   createSingleNodeInstance(node, elements) {
     const businessId = node.nodeId
-    console.log('🔍 MAPPER DEBUG - creating single node:', { 
-      nodeId: node.nodeId, 
-      id: node.id, 
-      businessId, 
-      label: node.title || node.label 
+    console.log('🔍 MAPPER DEBUG - creating single node:', {
+      nodeId: node.nodeId,
+      id: node.id,
+      businessId,
+      label: node.title || node.label
     })
     const displayId = this.generateDisplayId('node')
-    
+
     // Find parent system compound
     let parentId = null
     if (node.systems && node.systems.length > 0) {
@@ -126,24 +143,24 @@ export class GraphViewerMapper {
         id: displayId,
         label: node.title || `Node ${businessId}`,
         originalNodeId: businessId,
-        
+
         // Classification data
         assetClass: node.assetClass || 'default',
         type: this.mapAssetClassToType(node.assetClass),
-        
+
         // Custom styling data (if provided)
         color: node.color,
-        borderColor: node.borderColor,  
+        borderColor: node.borderColor,
         shape: node.shape,
         size: node.size,
-        
+
         // Membership data
         systems: node.systems || [],
         groups: node.groups || [],
-        
+
         // Additional data
         properties: node.properties || {},
-        
+
         // Single system instance
         isMultiSystemAsset: false,
         systemContext: node.systems?.[0] || null
@@ -188,29 +205,29 @@ export class GraphViewerMapper {
           id: displayId,
           label: node.title || `Node ${businessId}`,
           originalNodeId: businessId,
-          
+
           // Classification data
           assetClass: node.assetClass || 'default',
           type: this.mapAssetClassToType(node.assetClass),
-          
+
           // Custom styling data (if provided)
           color: node.color,
-          borderColor: node.borderColor,  
+          borderColor: node.borderColor,
           shape: node.shape,
           size: node.size,
-          
+
           // Membership data
           systems: [systemName], // Each instance belongs to one system context
           groups: node.groups || [],
-          
+
           // Additional data
           properties: node.properties || {},
-          
+
           // Multi-system instance metadata
           isMultiSystemAsset: true,
           systemContext: systemName,
           multiSystemGroup: businessId, // Link all instances together
-          
+
           // Visual styling for multi-system assets
           borderStyle: 'dashed' // Special styling for multi-system instances
         }
@@ -239,7 +256,7 @@ export class GraphViewerMapper {
       const key = `${businessId}_${systemName}`
       this.nodeMapping.set(key, displayIds[index])
     })
-    
+
     // Also create primary mapping (for backward compatibility)
     this.nodeMapping.set(businessId, displayIds[0])
 
@@ -255,7 +272,7 @@ export class GraphViewerMapper {
     for (let i = 0; i < displayIds.length - 1; i++) {
       for (let j = i + 1; j < displayIds.length; j++) {
         const edgeId = `multi_system_connection_${businessId}_${i}_${j}`
-        
+
         const connectionEdge = {
           group: 'edges',
           data: {
@@ -263,15 +280,15 @@ export class GraphViewerMapper {
             source: displayIds[i],
             target: displayIds[j],
             label: 'Multi System Asset',
-            
+
             // Classification
             relationshipType: 'MULTI_SYSTEM_ASSET',
             type: 'multi_system_connection',
-            
+
             // Visual styling
             lineStyle: 'dashed',
             color: '#ffcccb', // Light red
-            
+
             // Metadata
             isMultiSystemConnection: true,
             originalNodeId: businessId
@@ -300,27 +317,27 @@ export class GraphViewerMapper {
   createEdgeWithSystemContext(edge, elements) {
     const sourceBusinessId = edge.source
     const targetBusinessId = edge.target
-    
+
     // Get all possible display instances for source and target
     const sourceCandidates = this.getDisplayInstances(sourceBusinessId)
     const targetCandidates = this.getDisplayInstances(targetBusinessId)
-    
+
     if (sourceCandidates.length === 0 || targetCandidates.length === 0) {
       console.warn(`Cannot create edge ${edge.id}: missing display instances`)
       return
     }
-    
+
     // Determine which instances to connect based on relationship type and system context
     const connections = this.determineEdgeConnections(
-      edge, 
-      sourceCandidates, 
+      edge,
+      sourceCandidates,
       targetCandidates
     )
-    
+
     // Create edge for each valid connection
     connections.forEach((connection, index) => {
       const edgeId = connections.length > 1 ? `${edge.id}_${index}` : edge.id
-      
+
       const edgeElement = {
         group: 'edges',
         data: {
@@ -328,20 +345,20 @@ export class GraphViewerMapper {
           source: connection.sourceDisplayId,
           target: connection.targetDisplayId,
           label: edge.relationshipType || '',
-          
+
           // Classification
           relationshipType: edge.relationshipType,
           type: edge.relationshipType || 'default',
-          
+
           // Custom styling (if provided)
           color: edge.color,
           width: edge.width,
           style: edge.style,
           arrowShape: edge.arrowShape,
-          
+
           // System context metadata
           systemContext: connection.systemContext,
-          
+
           // Additional data
           properties: edge.properties || {}
         }
@@ -356,10 +373,10 @@ export class GraphViewerMapper {
    */
   getDisplayInstances(businessId) {
     const instances = []
-    
+
     console.log('🔍 MAPPER DEBUG - getDisplayInstances for:', businessId)
     console.log('🔍 MAPPER DEBUG - nodeMapping contents:', Array.from(this.nodeMapping.entries()))
-    
+
     // Check primary mapping
     const primaryId = this.nodeMapping.get(businessId)
     if (primaryId) {
@@ -369,13 +386,13 @@ export class GraphViewerMapper {
         systemContext: null // Will be determined from elements
       })
     }
-    
+
     // Check system-specific mappings for multi-system nodes
     for (const [key, displayId] of this.nodeMapping.entries()) {
       // Ensure key is a string before calling startsWith
       const keyStr = String(key)
       const businessIdStr = String(businessId)
-      
+
       if (keyStr.startsWith(`${businessIdStr}_`) && keyStr !== businessIdStr) {
         const systemName = keyStr.substring(`${businessIdStr}_`.length)
         instances.push({
@@ -385,7 +402,7 @@ export class GraphViewerMapper {
         })
       }
     }
-    
+
     return instances
   }
 
@@ -394,7 +411,7 @@ export class GraphViewerMapper {
    */
   determineEdgeConnections(edge, sourceCandidates, targetCandidates) {
     const connections = []
-    
+
     // Strategy 1: If both nodes are single-system, connect directly
     if (sourceCandidates.length === 1 && targetCandidates.length === 1) {
       connections.push({
@@ -404,11 +421,11 @@ export class GraphViewerMapper {
       })
       return connections
     }
-    
+
     // Strategy 2: Connect instances that share the same system context
     sourceCandidates.forEach(source => {
       targetCandidates.forEach(target => {
-        if (source.systemContext && target.systemContext && 
+        if (source.systemContext && target.systemContext &&
             source.systemContext === target.systemContext) {
           connections.push({
             sourceDisplayId: source.displayId,
@@ -418,7 +435,7 @@ export class GraphViewerMapper {
         }
       })
     })
-    
+
     // Strategy 3: If no shared system context, connect first instances
     // (This handles cases where relationship spans systems)
     if (connections.length === 0) {
@@ -428,7 +445,7 @@ export class GraphViewerMapper {
         systemContext: 'cross_system'
       })
     }
-    
+
     return connections
   }
 
@@ -437,14 +454,14 @@ export class GraphViewerMapper {
    */
   mapAssetClassToType(assetClass) {
     if (!assetClass) return 'default'
-    
+
     const lowerClass = assetClass.toLowerCase()
-    
+
     if (lowerClass.includes('server') || lowerClass.includes('web')) return 'server'
-    if (lowerClass.includes('database') || lowerClass.includes('db')) return 'database' 
+    if (lowerClass.includes('database') || lowerClass.includes('db')) return 'database'
     if (lowerClass.includes('application') || lowerClass.includes('app')) return 'application'
     if (lowerClass.includes('network') || lowerClass.includes('device')) return 'network'
-    
+
     return 'default'
   }
 
@@ -454,10 +471,10 @@ export class GraphViewerMapper {
    */
   updateHulls(cy, groupVisibility = {}) {
     console.log('Updating hulls with visibility:', groupVisibility)
-    
+
     // Remove existing hulls
     cy.elements('node.group-hull').remove()
-    
+
     // Get all unique groups from nodes (exclude hull nodes and system compounds)
     const groups = new Map()
     cy.nodes().forEach(node => {
@@ -465,10 +482,10 @@ export class GraphViewerMapper {
       if (node.hasClass('group-hull') || node.data('isCompound') || node.data('isHull')) {
         return
       }
-      
+
       const nodeGroups = node.data('groups') || []
       console.log(`Node ${node.data('label')} has groups:`, nodeGroups)
-      
+
       nodeGroups.forEach(groupName => {
         if (!groups.has(groupName)) {
           groups.set(groupName, [])
@@ -476,13 +493,13 @@ export class GraphViewerMapper {
         groups.get(groupName).push(node)
       })
     })
-    
+
     console.log(`Found ${groups.size} groups:`, Array.from(groups.keys()))
-    
+
     // Create hull for each visible group (including single-node groups)
     groups.forEach((nodes, groupName) => {
       const isVisible = groupVisibility[groupName] !== false // Default true
-      
+
       if (isVisible && nodes.length >= 1) {
         this.createHullElement(cy, groupName, nodes)
       }
@@ -496,47 +513,47 @@ export class GraphViewerMapper {
     // Calculate bounding box using actual node boundaries, not just center positions
     const padding = 60
     const minHullSize = 120 // Minimum hull size for single nodes
-    
+
     let minX = Infinity, maxX = -Infinity
     let minY = Infinity, maxY = -Infinity
-    
+
     // Use actual node boundaries instead of center positions
     nodes.forEach(node => {
       const bbox = node.boundingBox()
       // bbox gives us the actual rendered boundaries including node size
       const nodeLeft = bbox.x1
-      const nodeRight = bbox.x2  
+      const nodeRight = bbox.x2
       const nodeTop = bbox.y1
       const nodeBottom = bbox.y2
-      
+
       minX = Math.min(minX, nodeLeft)
       maxX = Math.max(maxX, nodeRight)
       minY = Math.min(minY, nodeTop)
       maxY = Math.max(maxY, nodeBottom)
     })
-    
+
     // Add padding
     minX -= padding
     maxX += padding
     minY -= padding
     maxY += padding
-    
+
     // Ensure minimum size for single-node hulls
     const currentWidth = maxX - minX
     const currentHeight = maxY - minY
-    
+
     if (currentWidth < minHullSize) {
       const expand = (minHullSize - currentWidth) / 2
       minX -= expand
       maxX += expand
     }
-    
+
     if (currentHeight < minHullSize) {
       const expand = (minHullSize - currentHeight) / 2
       minY -= expand
       maxY += expand
     }
-    
+
     // Create hull element (using data attributes instead of inline styles)
     const hullId = `hull_${groupName.replace(/\s+/g, '_')}`
     const hullColor = this.getGroupColor(groupName)
@@ -556,20 +573,20 @@ export class GraphViewerMapper {
         y: (minY + maxY) / 2
       }
     }
-    
+
     // Add the hull element
     const addedElement = cy.add(hullElement)
-    
+
     // Set size using style() method after adding (more reliable)
     addedElement.style({
       'width': maxX - minX,
       'height': maxY - minY
     })
-    
+
     // Make hull elements non-interactive
     addedElement.ungrabify()
     addedElement.unselectify()
-    
+
     console.log(`Created hull for group: ${groupName} with ${nodes.length} members`)
   }
 
@@ -580,7 +597,7 @@ export class GraphViewerMapper {
     // Color palette for different groups
     const colors = [
       '#FF6B6B', // Red
-      '#4ECDC4', // Teal  
+      '#4ECDC4', // Teal
       '#45B7D1', // Blue
       '#96CEB4', // Green
       '#FFEAA7', // Yellow
@@ -588,13 +605,13 @@ export class GraphViewerMapper {
       '#98D8C8', // Mint
       '#F7DC6F'  // Gold
     ]
-    
+
     // Hash group name to get consistent color
     let hash = 0
     for (let i = 0; i < groupName.length; i++) {
       hash = ((hash << 5) - hash + groupName.charCodeAt(i)) & 0xffffffff
     }
-    
+
     return colors[Math.abs(hash) % colors.length]
   }
 
@@ -604,7 +621,7 @@ export class GraphViewerMapper {
   applyGroupVisibility(elements, groupVisibility = {}) {
     // Create hulls for visible groups
     const groups = new Map()
-    
+
     // Collect all groups from elements
     elements.forEach(element => {
       if (element.group === 'nodes' && !element.data.isCompound && !element.data.isHull) {
@@ -617,13 +634,13 @@ export class GraphViewerMapper {
         })
       }
     })
-    
+
     console.log('Applying group visibility to', groups.size, 'groups:', Array.from(groups.keys()))
-    
+
     // Create hull elements for visible groups
     groups.forEach((groupElements, groupName) => {
       const isVisible = groupVisibility[groupName] !== false // Default true
-      
+
       if (isVisible && groupElements.length >= 1) {
         console.log('Creating hull for visible group:', groupName)
         this.createStaticHullElement(groupElements, groupName, elements)
@@ -640,55 +657,55 @@ export class GraphViewerMapper {
     // Calculate approximate bounding box from element positions
     const padding = 60
     const minHullSize = 120
-    
+
     let minX = Infinity, maxX = -Infinity
     let minY = Infinity, maxY = -Infinity
-    
+
     // Use element positions (approximate since we don't have actual rendered sizes)
     groupElements.forEach(element => {
       if (element.position) {
         const x = element.position.x
         const y = element.position.y
         const nodeSize = 40 // Approximate node size
-        
+
         minX = Math.min(minX, x - nodeSize/2)
         maxX = Math.max(maxX, x + nodeSize/2)
         minY = Math.min(minY, y - nodeSize/2)
         maxY = Math.max(maxY, y + nodeSize/2)
       }
     })
-    
+
     // If no positions available, skip hull creation
     if (minX === Infinity) {
       console.log('No position data available for hull:', groupName)
       return
     }
-    
+
     // Add padding and ensure minimum size
     minX -= padding
     maxX += padding
     minY -= padding
     maxY += padding
-    
+
     const currentWidth = maxX - minX
     const currentHeight = maxY - minY
-    
+
     if (currentWidth < minHullSize) {
       const expand = (minHullSize - currentWidth) / 2
       minX -= expand
       maxX += expand
     }
-    
+
     if (currentHeight < minHullSize) {
       const expand = (minHullSize - currentHeight) / 2
       minY -= expand
       maxY += expand
     }
-    
+
     // Create hull element
     const hullId = `hull_${groupName.replace(/\s+/g, '_')}`
     const hullColor = this.getGroupColor(groupName)
-    
+
     const hullElement = {
       group: 'nodes',
       data: {
@@ -707,7 +724,7 @@ export class GraphViewerMapper {
         y: (minY + maxY) / 2
       }
     }
-    
+
     elements.push(hullElement)
     console.log(`Created static hull for group: ${groupName} with ${groupElements.length} members`)
   }

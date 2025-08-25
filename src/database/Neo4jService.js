@@ -12,7 +12,6 @@ export class Neo4jService {
     if (Neo4jService.instance) {
       return Neo4jService.instance
     }
-    
     this.driver = neo4j.driver(
       import.meta.env.VITE_NEO4J_URI,
       neo4j.auth.basic(import.meta.env.VITE_NEO4J_USERNAME, import.meta.env.VITE_NEO4J_PASSWORD)
@@ -45,10 +44,10 @@ export class Neo4jService {
       database: this.database,
       ...options
     }
-    
+
     this.sessionCount++
     const session = this.driver.session(sessionOptions)
-    
+
     // Wrap the close method to track session count
     const originalClose = session.close.bind(session)
     session.close = async () => {
@@ -68,7 +67,7 @@ export class Neo4jService {
    */
   async executeQuery(query, parameters = {}, options = {}) {
     const session = this.getSession(options)
-    
+
     try {
       const result = await session.run(query, parameters)
       return result
@@ -85,7 +84,7 @@ export class Neo4jService {
    */
   async executeTransaction(transactionWork, options = {}) {
     const session = this.getSession(options)
-    
+
     try {
       return await session.executeWrite(transactionWork)
     } finally {
@@ -101,7 +100,7 @@ export class Neo4jService {
    */
   async executeReadTransaction(transactionWork, options = {}) {
     const session = this.getSession(options)
-    
+
     try {
       return await session.executeRead(transactionWork)
     } finally {
@@ -177,26 +176,26 @@ export class Neo4jService {
     try {
       console.log('🏗️ Starting default classes initialization...')
       console.log('🔍 Current Neo4j connection status:', this.getStatus())
-      
+
       // Import services dynamically to avoid circular dependencies
       console.log('📦 Importing AssetClassService...')
       const { AssetClassService } = await import('../NodeModule/assetclass/AssetClassService.js')
       console.log('📦 Importing RelationshipClassService...')
       const { RelationshipClassService } = await import('../RelationModule/relationshipclass/RelationshipClassService.js')
-      
+
       console.log('🏭 Creating service instances...')
       const assetClassService = new AssetClassService()
       const relationshipClassService = new RelationshipClassService()
-      
+
       console.log('🏗️ Creating default asset class...')
       await this._ensureDefaultAssetClass(assetClassService)
-      
+
       console.log('🔗 Creating default relationship class...')
       await this._ensureDefaultRelationshipClass(relationshipClassService)
-      
+
       this._defaultClassesInitialized = true
       console.log('✅ Default classes initialization complete successfully')
-      
+
     } catch (error) {
       console.error('❌ FAILED to initialize default classes:')
       console.error('   Error type:', error.constructor.name)
@@ -212,45 +211,45 @@ export class Neo4jService {
    */
   async _ensureDefaultAssetClass(assetClassService) {
     const className = 'Default'
-    
+
     try {
       console.log(`🔍 Checking if AssetClass '${className}' exists...`)
       const exists = await assetClassService.assetClassExists({ className })
       console.log(`📋 AssetClass '${className}' exists check result:`, exists)
-      
+
       if (!exists) {
         console.log(`🏗️ Creating default AssetClass: ${className}`)
         console.log('📝 AssetClass data:', {
           className,
           propertySchema: {
-            name: { 
-              type: 'string', 
-              required: true, 
+            name: {
+              type: 'string',
+              required: true,
               default: 'New Asset',
               description: 'Asset name or identifier'
             },
-            description: { 
-              type: 'string', 
-              required: false, 
+            description: {
+              type: 'string',
+              required: false,
               default: '',
               description: 'Optional asset description'
             }
           },
           requiredProperties: ['name']
         })
-        
+
         await assetClassService.createAssetClass({
           className,
           propertySchema: {
-            name: { 
-              type: 'string', 
-              required: true, 
+            name: {
+              type: 'string',
+              required: true,
               default: 'New Asset',
               description: 'Asset name or identifier'
             },
-            description: { 
-              type: 'string', 
-              required: false, 
+            description: {
+              type: 'string',
+              required: false,
               default: '',
               description: 'Optional asset description'
             }
@@ -277,12 +276,12 @@ export class Neo4jService {
   async _ensureDefaultRelationshipClass(relationshipClassService) {
     const relationshipClassName = 'Default'
     const relationshipType = 'CONNECTS_TO'
-    
+
     try {
       console.log(`🔍 Checking if RelationshipClass '${relationshipClassName}' exists...`)
       const exists = await relationshipClassService.relationshipClassExists({ relationshipClassName })
       console.log(`📋 RelationshipClass '${relationshipClassName}' exists check result:`, exists)
-      
+
       if (!exists) {
         console.log(`🏗️ Creating default RelationshipClass: ${relationshipClassName} (${relationshipType})`)
         console.log('📝 RelationshipClass data:', {
@@ -301,7 +300,7 @@ export class Neo4jService {
           allowedToTypes: ['Asset'],
           description: 'Generic connection between any two assets'
         })
-        
+
         await relationshipClassService.createRelationshipClass({
           relationshipClassName,
           relationshipType,
@@ -339,7 +338,7 @@ export class Neo4jService {
     if (this.sessionCount > 0) {
       console.warn(`Closing Neo4j driver with ${this.sessionCount} active sessions`)
     }
-    
+
     await this.driver.close()
     this.isConnected = false
     this._defaultClassesInitialized = false

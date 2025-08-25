@@ -8,35 +8,11 @@
  * These colors work well with both light and dark Material UI themes
  */
 export const NODE_STYLES = {
-  server: {
-    'background-color': '#4CAF50',
-    'shape': 'rectangle',
-    'border-color': '#388E3C',
-    'color': '#fff'
-  },
-  database: {
-    'background-color': '#FF9800', 
-    'shape': 'hexagon',
-    'border-color': '#F57C00',
-    'color': '#fff'
-  },
-  application: {
-    'background-color': '#9C27B0',
-    'shape': 'round-rectangle', 
-    'border-color': '#7B1FA2',
-    'color': '#fff'
-  },
-  network: {
-    'background-color': '#2196F3',
-    'shape': 'diamond',
-    'border-color': '#1976D2', 
-    'color': '#fff'
-  },
   default: {
     'background-color': '#757575',
     'shape': 'ellipse',
     'border-color': '#424242',
-    'color': '#fff'
+    'color': '#000'
   }
 }
 
@@ -50,7 +26,7 @@ export const EDGE_STYLES = {
     'line-style': 'solid'
   },
   connects_to: {
-    'line-color': '#2196F3', 
+    'line-color': '#2196F3',
     'target-arrow-color': '#2196F3',
     'line-style': 'solid'
   },
@@ -81,14 +57,14 @@ export const BASE_CYTOSCAPE_STYLE = [
     selector: 'node',
     style: {
       'label': 'data(label)',
-      'text-valign': 'center',
+      'text-valign': 'top',
       'text-halign': 'center',
-      'border-width': 2,
+      'text-margin-y': '-10px',
+      'border-width': 0,
       'width': '60px',
       'height': '60px',
       'font-size': '12px',
-      'text-outline-width': 1,
-      'text-outline-color': '#000',
+      'color': '#000000',
       'overlay-opacity': 0 // Ensure no overlay by default
     }
   },
@@ -183,7 +159,7 @@ export const BASE_CYTOSCAPE_STYLE = [
     selector: 'edge.multi-system-edge',
     style: {
       'line-color': '#ffcccb',
-      'line-style': 'dashed', 
+      'line-style': 'dashed',
       'line-opacity': 0.7,
       'width': 2,
       'target-arrow-color': '#ffcccb',
@@ -332,7 +308,7 @@ export const createGraphViewerStyles = (theme) => ({
  */
 export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
   const styles = [...BASE_CYTOSCAPE_STYLE]
-  
+
   // Add node type styles
   Object.entries(NODE_STYLES).forEach(([nodeType, style]) => {
     styles.push({
@@ -340,15 +316,15 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
       style: style
     })
   })
-  
-  // Add edge type styles  
+
+  // Add edge type styles
   Object.entries(EDGE_STYLES).forEach(([edgeType, style]) => {
     styles.push({
       selector: `edge[type="${edgeType}"]`,
       style: style
     })
   })
-  
+
   // Add system-based node highlighting
   styles.push({
     selector: 'node[systems.length > 0]',
@@ -357,7 +333,7 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
       'border-width': 3
     }
   })
-  
+
   // Use Material UI theme colors if available
   if (theme) {
     styles.push({
@@ -369,7 +345,7 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
       }
     })
   }
-  
+
   // Merge any custom styles
   if (customStyles.nodes) {
     styles.push({
@@ -377,14 +353,14 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
       style: customStyles.nodes
     })
   }
-  
+
   if (customStyles.edges) {
     styles.push({
-      selector: 'edge', 
+      selector: 'edge',
       style: customStyles.edges
     })
   }
-  
+
   // Add temp element styles for drag-to-connect
   styles.push({
     selector: '.temp-node',
@@ -394,7 +370,7 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
       'height': 1
     }
   })
-  
+
   styles.push({
     selector: '.temp-edge',
     style: {
@@ -408,7 +384,7 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
       'line-style': 'dashed'
     }
   })
-  
+
   // Expand-collapse cue styling for system compounds
   styles.push({
     selector: '.cy-expand-collapse-cue',
@@ -478,6 +454,6 @@ export const buildCytoscapeStyle = (customStyles = {}, theme = null) => {
 
   // Note: Hover effects are now handled via direct style manipulation in event handlers
   // No CSS hover selectors needed since we use instance.on('mouseover') and node.style()
-  
+
   return styles
 }

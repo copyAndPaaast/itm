@@ -283,17 +283,17 @@ const MainLayout = ({ children }) => {
         console.log('📝 Node data:', eventData.nodeData)
         
         // Add node to Redux graphViewer state
-        if (currentSystemId) {
+        if (currentSystemId && currentSystem) {
           const nodeForState = {
             nodeId: eventData.nodeId,
             id: eventData.nodeId,
             label: eventData.nodeData.label,
             type: eventData.nodeData.type,
             assetClass: eventData.nodeData.assetClass,
-            systemId: eventData.systemId,
-            systemName: eventData.systemName,
+            systemId: currentSystemId,
+            systemName: currentSystem.systemName,
             position: eventData.position,
-            systems: [eventData.systemName],
+            systems: [currentSystem.systemLabel], // Use systemLabel for Neo4j consistency
             groups: [],
             properties: {}
           }
