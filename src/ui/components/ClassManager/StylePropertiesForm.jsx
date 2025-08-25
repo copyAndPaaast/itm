@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Box, 
   TextField, 
@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import cytoscape from 'cytoscape';
 import { createStylePropertiesFormStyles } from './StylePropertiesFormStyles';
 
 // Cytoscape node style properties with categories
@@ -299,6 +300,8 @@ const StylePropertiesForm = ({ styleProperties = {}, onStyleChange, type = 'asse
   const theme = useTheme();
   const styles = createStylePropertiesFormStyles(theme);
   const [currentStyles, setCurrentStyles] = useState({});
+  const cytoscapeRef = useRef(null);
+  const cyInstanceRef = useRef(null);
 
   // Initialize form with default values or provided values
   useEffect(() => {
@@ -321,6 +324,97 @@ const StylePropertiesForm = ({ styleProperties = {}, onStyleChange, type = 'asse
 
     setCurrentStyles(initialStyles);
   }, [styleProperties, type]);
+
+  // Initialize Cytoscape preview
+  useEffect(() => {
+    if (!cytoscapeRef.current) return;
+
+    // Clean up existing instance
+    if (cyInstanceRef.current) {
+      cyInstanceRef.current.destroy();
+    }
+
+    // Create preview data based on type
+    const elements = type === 'asset' 
+      ? [
+          { data: { id: 'node1', label: 'Sample Node' } },
+          { data: { id: 'node2', label: 'Node B' } },
+          { data: { id: 'edge1', source: 'node1', target: 'node2', label: '' } }
+        ]
+      : [
+          { data: { id: 'node1', label: 'A' } },
+          { data: { id: 'node2', label: 'B' } },
+          { data: { id: 'edge1', source: 'node1', target: 'node2', label: 'Sample Relationship' } }
+        ];
+
+    // Create Cytoscape instance
+    cyInstanceRef.current = cytoscape({
+      container: cytoscapeRef.current,
+      elements: elements,
+      layout: {
+        name: 'preset',
+        positions: {
+          node1: { x: 50, y: 75 },
+          node2: { x: 200, y: 75 }
+        }
+      },
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'label': 'data(label)',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'background-color': '#757575',
+            'border-color': '#424242',
+            'border-width': 0,
+            'width': 60,
+            'height': 60,
+            'font-size': '12px',
+            'color': '#000000'
+          }
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': 2,
+            'line-color': '#757575',
+            'target-arrow-color': '#757575',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            'label': 'data(label)',
+            'font-size': '10px',
+            'text-rotation': 'autorotate'
+          }
+        }
+      ],
+      userZoomingEnabled: false,
+      userPanningEnabled: false,
+      boxSelectionEnabled: false,
+      autoungrabify: true
+    });
+
+    return () => {
+      if (cyInstanceRef.current) {
+        cyInstanceRef.current.destroy();
+      }
+    };
+  }, [type]);
+
+  // Update Cytoscape styles when currentStyles changes
+  useEffect(() => {
+    if (!cyInstanceRef.current) return;
+
+    const cy = cyInstanceRef.current;
+    
+    if (type === 'asset') {
+      // Update node styles
+      cy.nodes().style(currentStyles);
+    } else {
+      // Update edge styles  
+      cy.edges().style(currentStyles);
+    }
+  }, [currentStyles, type]);
 
   const handleStyleChange = (property, value) => {
     const updatedStyles = { ...currentStyles, [property]: value };
@@ -488,45 +582,13 @@ const StylePropertiesForm = ({ styleProperties = {}, onStyleChange, type = 'asse
               Style Preview
             </Typography>
             <Box sx={styles.previewContainer}>
-              {type === 'asset' ? (
-                // Node Preview
-                <Chip 
-                  label="Sample Node" 
-                  sx={{
-                    ...styles.previewNode,
-                    backgroundColor: currentStyles['background-color'],
-                    borderColor: currentStyles['border-color'],
-                    borderWidth: `${currentStyles['border-width']}px`,
-                    borderStyle: currentStyles['border-style'],
-                    opacity: currentStyles['opacity'],
-                    boxShadow: currentStyles['shadow-blur'] > 0 ? 
-                      `${currentStyles['shadow-offset-x']}px ${currentStyles['shadow-offset-y']}px ${currentStyles['shadow-blur']}px rgba(0,0,0,${currentStyles['shadow-opacity']})` : 
-                      'none'
-                  }}
-                />
-              ) : (
-                // Relationship Preview
-                <Box sx={styles.relationshipPreview}>
-                  <Box sx={styles.previewNode}>A</Box>
-                  <Box 
-                    sx={{
-                      ...styles.previewEdge,
-                      borderTopColor: currentStyles['line-color'],
-                      borderTopWidth: `${currentStyles['width']}px`,
-                      borderTopStyle: currentStyles['line-style'],
-                      opacity: currentStyles['opacity'] * (currentStyles['line-opacity'] || 1),
-                      '&::after': {
-                        borderLeftColor: currentStyles['target-arrow-color'] || currentStyles['line-color'],
-                        transform: `scale(${currentStyles['arrow-scale'] || 1})`,
-                        display: currentStyles['target-arrow-shape'] === 'none' ? 'none' : 'block'
-                      }
-                    }}
-                  />
-                  <Box sx={styles.previewNode}>B</Box>
-                </Box>
-              )}
+              {/* Cytoscape Preview Container */}
+              <Box 
+                ref={cytoscapeRef}
+                sx={styles.cytoscapeContainer}
+              />
               <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', mt: 1 }}>
-                Live preview of {type === 'asset' ? 'node' : 'relationship'} styling
+                Live Cytoscape preview of {type === 'asset' ? 'node' : 'relationship'} styling
               </Typography>
             </Box>
           </Paper>
