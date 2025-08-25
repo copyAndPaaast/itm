@@ -164,10 +164,47 @@ export class Neo4jService {
   }
 
   /**
+   * Create database constraints to prevent duplicate entries
+   */
+  async ensureConstraints() {
+    const session = this.getSession()
+    
+    try {
+      console.log('🔒 Creating database constraints...')
+      
+      // Constraint for unique AssetClass names
+      await session.run(`
+        CREATE CONSTRAINT assetclass_name_unique 
+        IF NOT EXISTS 
+        FOR (ac:_AssetClass) 
+        REQUIRE ac.className IS UNIQUE
+      `)
+      
+      // Constraint for unique RelationshipClass names  
+      await session.run(`
+        CREATE CONSTRAINT relationshipclass_name_unique 
+        IF NOT EXISTS 
+        FOR (rc:_RelationshipClass) 
+        REQUIRE rc.relationshipClassName IS UNIQUE
+      `)
+      
+      console.log('✅ Database constraints created successfully')
+      
+    } catch (error) {
+      // Constraints might already exist, which is fine
+      console.log('ℹ️ Constraints already exist or creation skipped:', error.message)
+    } finally {
+      await session.close()
+    }
+  }
+
+  /**
    * Ensure default node and edge classes exist for basic graph operations
    * Creates minimal generic classes if they don't already exist
    */
   async ensureDefaultClasses() {
+    // First ensure constraints exist to prevent duplicates
+    await this.ensureConstraints()
     if (this._defaultClassesInitialized) {
       console.log('✅ Default classes already initialized, skipping...')
       return // Already initialized

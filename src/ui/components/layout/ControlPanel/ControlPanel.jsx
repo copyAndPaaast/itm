@@ -27,6 +27,7 @@ import { PermissionService } from '../../../../user/PermissionService.js'
 import { useOverlay } from '../../overlay/OverlayProvider.jsx'
 import AssetClassesList from '../../assetclasses/AssetClassesList.jsx'
 import RelationshipClassesList from '../../relationshipclasses/RelationshipClassesList.jsx'
+import ClassManager from '../../ClassManager/ClassManager.jsx'
 
 const ControlPanel = ({
   systemsComponent = null,
@@ -67,7 +68,7 @@ const ControlPanel = ({
   const canEditRelationships = PermissionService.checkPermission('edit', userPermissions)
 
   // Access overlay context
-  const { showEditor } = useOverlay()
+  const { showEditor, hideOverlay } = useOverlay()
 
   /**
    * Handle Edit Node Types action
@@ -82,13 +83,13 @@ const ControlPanel = ({
     
     // Open overlay for testing
     showEditor(
-      'Edit Node Types',
-      <Typography>Node type editing interface will be implemented here.</Typography>,
-      <Button variant="contained" onClick={() => console.log('Save clicked')}>
+      'Class Manager - Asset Administration',
+      <ClassManager type='asset' />,
+      <Button variant="contained" onClick={hideOverlay}>
         Close
       </Button>,
       {
-        subtitle: 'Configure asset class templates and validation rules'
+        subtitle: 'Configure asset and relationship class templates'
       }
     )
   }
@@ -106,13 +107,13 @@ const ControlPanel = ({
     
     // Open overlay for testing
     showEditor(
-      'Edit Relationships',
-      <Typography>Relationship management interface will be implemented here.</Typography>,
-      <Button variant="contained" onClick={() => console.log('Save clicked')}>
+      'Class Manager - Relationship Administration',
+      <ClassManager type='relationship' />,
+      <Button variant="contained" onClick={hideOverlay}>
         Close
       </Button>,
       {
-        subtitle: 'Manage relationship types and properties'
+        subtitle: 'Configure asset and relationship class templates'
       }
     )
   }
