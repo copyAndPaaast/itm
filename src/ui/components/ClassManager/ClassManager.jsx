@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Tabs, Tab, Paper, Typography, Divider } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { createClassManagerStyles } from './ClassManagerStyles';
 import AssetClassesList from '../assetclasses/AssetClassesList';
 import RelationshipClassesList from '../relationshipclasses/RelationshipClassesList';
 import ClassDetailsForm from './ClassDetailsForm';
+import StylePropertiesForm from './StylePropertiesForm';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -31,6 +32,16 @@ const ClassManager = ({ type = 'asset' }) => {
   const styles = createClassManagerStyles(theme);
   const [selectedClass, setSelectedClass] = useState(null);
   const [tabValue, setTabValue] = useState(0);
+  
+  // Load default style properties for new classes
+  useEffect(() => {
+    if (selectedClass && !selectedClass.styleProperties) {
+      setSelectedClass(prev => ({
+        ...prev,
+        styleProperties: {} // Empty object will use form defaults
+      }));
+    }
+  }, [selectedClass]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -44,6 +55,20 @@ const ClassManager = ({ type = 'asset' }) => {
   const handleClassDetailsChange = (updatedDetails) => {
     setSelectedClass(updatedDetails);
     // Here you would typically also dispatch an action to save the changes
+  };
+
+  const handleStyleChange = (updatedStyles) => {
+    const updatedClass = {
+      ...selectedClass,
+      styleProperties: updatedStyles
+    };
+    setSelectedClass(updatedClass);
+    
+    // TODO: Integrate with AssetClassService to persist style changes
+    console.log('🎨 Style properties updated:', {
+      className: selectedClass.className || selectedClass.relationshipClassName,
+      styleProperties: updatedStyles
+    });
   };
 
   const renderList = () => {
@@ -79,8 +104,11 @@ const ClassManager = ({ type = 'asset' }) => {
           />
         </TabPanel>
         <TabPanel value={tabValue} index={1}>
-          <Typography>Style form will be here.</Typography>
-          {/* Placeholder for style form */}
+          <StylePropertiesForm 
+            styleProperties={selectedClass.styleProperties || {}}
+            onStyleChange={handleStyleChange}
+            type={type}
+          />
         </TabPanel>
       </Box>
     );
