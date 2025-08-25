@@ -15,7 +15,18 @@ import { useTheme } from '@mui/material/styles'
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels'
 import { useDispatch, useSelector } from 'react-redux'
 import { setLoading, setSuccess, setError, setWarning, setIdle, showTemporarySuccess, executeWithStatus } from '../../store/statusSlice.js'
-import { startCreateSystem, selectIsCreatingSystem, selectIsEditingSystem, selectCurrentSystemId, selectCurrentSystem, selectSystemViewMode } from '../../store/systemSlice.js'
+import { 
+  startCreateSystem, 
+  selectIsCreatingSystem, 
+  selectIsEditingSystem, 
+  selectCurrentSystemId, 
+  selectCurrentSystem, 
+  selectSystemViewMode,
+  selectGroupVisibility,
+  selectSystemCollapsed,
+  toggleGroupVisibility,
+  toggleSystemCollapsed 
+} from '../../store/systemSlice.js'
 import { SYSTEM_VIEW_MODES } from '../../store/systemViewModes.js'
 import { getNodeCount, getEdgeCount, getNodes, getEdges } from '../../store/selectors.js'
 import { addNode, addEdge, initializeGraph } from '../../store/graphViewerSlice.js'
@@ -41,12 +52,35 @@ const MainLayout = ({ children }) => {
   const currentSystemId = useSelector(selectCurrentSystemId)
   const currentSystem = useSelector(selectCurrentSystem)
   const systemViewMode = useSelector(selectSystemViewMode)
+  const groupVisibility = useSelector(selectGroupVisibility)
+  const systemCollapsed = useSelector(selectSystemCollapsed)
 
   // Get node and edge data from Redux state
   const nodes = useSelector(state => currentSystemId ? getNodes(state, currentSystemId) : [])
   const edges = useSelector(state => currentSystemId ? getEdges(state, currentSystemId) : [])
   const nodeCount = useSelector(state => currentSystemId ? getNodeCount(state, currentSystemId) : 0)
   const edgeCount = useSelector(state => currentSystemId ? getEdgeCount(state, currentSystemId) : 0)
+
+  // Get available groups and systems from current data
+  const availableGroups = useMemo(() => {
+    const groups = new Set()
+    nodes.forEach(node => {
+      if (node.groups) {
+        node.groups.forEach(group => groups.add(group))
+      }
+    })
+    return Array.from(groups)
+  }, [nodes])
+
+  const availableSystems = useMemo(() => {
+    const systems = new Set()
+    nodes.forEach(node => {
+      if (node.systems) {
+        node.systems.forEach(system => systems.add(system))
+      }
+    })
+    return Array.from(systems)
+  }, [nodes])
 
   // Initialize graph when system changes (only if not already initialized)
   useEffect(() => {
@@ -74,13 +108,17 @@ const MainLayout = ({ children }) => {
     }
     
     const mapper = new GraphViewerMapper()
-    const mappedElements = mapper.mapToElements(nodes, edges)
+    const mappedElements = mapper.mapToElements(nodes, edges, {
+      groupVisibility,
+      systemCollapsed
+    })
     console.log('🔍 GraphViewerMapper: Mapped', nodes.length, 'nodes and', edges.length, 'edges to', mappedElements.length, 'elements')
+    console.log('🔍 Visibility states:', { groupVisibility, systemCollapsed })
     console.log('🔍 Redux nodes:', nodes.map(n => ({ id: n.nodeId || n.id, label: n.label })))
     console.log('🔍 Redux edges:', edges.map(e => ({ id: e.id, source: e.source, target: e.target, type: e.relationshipType })))
     console.log('🔍 Mapped elements:', mappedElements.filter(e => e.group === 'edges').map(e => ({ id: e.data.id, source: e.data.source, target: e.data.target })))
     return mappedElements
-  }, [nodes, edges, currentSystemId])
+  }, [nodes, edges, currentSystemId, groupVisibility, systemCollapsed])
 
   // Debug system state
   useEffect(() => {
@@ -333,6 +371,55 @@ const MainLayout = ({ children }) => {
         console.log('📡 Unhandled GraphViewer event:', eventType)
     }
   }
+
+  /**
+   * Handle group visibility toggle
+   */
+  const handleGroupToggle = (groupName, visible) => {
+    console.log('🔍 Group toggle:', groupName, 'visible:', visible)
+    dispatch(toggleGroupVisibility({ groupName, visible }))
+  }
+
+  /**
+   * Handle system collapse toggle
+   */
+  const handleSystemToggle = (systemName, collapsed) => {
+    console.log('🏗️ System toggle:', systemName, 'collapsed:', collapsed)
+    dispatch(toggleSystemCollapsed({ systemName, collapsed }))
+  }
+
+  /**
+   * Auto-manage group/system visibility states based on current viewing context
+   */
+  useEffect(() => {
+    if (systemViewMode === SYSTEM_VIEW_MODES.SINGLE && currentSystem) {
+      console.log('🎯 Single system mode detected - setting appropriate default states')
+      
+      // In single system mode, automatically set current system as expanded
+      const currentSystemName = currentSystem.systemName
+      if (currentSystemName && systemCollapsed[currentSystemName] !== false) {
+        console.log('🏗️ Auto-expanding current system:', currentSystemName)
+        dispatch(toggleSystemCollapsed({ systemName: currentSystemName, collapsed: false }))
+      }
+      
+      // Set appropriate group visibility defaults (show all groups in single system)
+      availableGroups.forEach(groupName => {
+        if (groupVisibility[groupName] === undefined) {
+          console.log('🔍 Auto-showing group in single system mode:', groupName)
+          dispatch(toggleGroupVisibility({ groupName, visible: true }))
+        }
+      })
+      
+      // Collapse other systems that aren't the current one (if any exist)
+      availableSystems.forEach(systemName => {
+        if (systemName !== currentSystemName && systemCollapsed[systemName] !== true) {
+          console.log('🏗️ Auto-collapsing non-current system:', systemName)
+          dispatch(toggleSystemCollapsed({ systemName, collapsed: true }))
+        }
+      })
+    }
+  }, [systemViewMode, currentSystem, availableGroups, availableSystems, groupVisibility, systemCollapsed, dispatch])
+
   return (
     <Box sx={styles.mainContainer}>
       {/* Header Component */}
@@ -418,6 +505,13 @@ const MainLayout = ({ children }) => {
                     isEditingSystem={isEditingSystem}
                     nodeCount={nodeCount}
                     edgeCount={edgeCount}
+                    availableGroups={availableGroups}
+                    availableSystems={availableSystems}
+                    groupVisibility={groupVisibility}
+                    systemCollapsed={systemCollapsed}
+                    onGroupToggle={handleGroupToggle}
+                    onSystemToggle={handleSystemToggle}
+                    systemViewMode={systemViewMode}
                     onEvent={handleGraphViewerEvent}
                   />
                 </Panel>

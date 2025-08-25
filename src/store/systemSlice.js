@@ -33,6 +33,10 @@ const initialState = {
   // Available systems (loaded from backend)
   systems: [],
   
+  // GraphViewer display states
+  groupVisibility: {}, // { groupName: boolean } - true = visible, false/undefined = hidden
+  systemCollapsed: {}, // { systemName: boolean } - true = collapsed, false/undefined = expanded
+  
   // Loading/error states
   isLoading: false,
   error: null
@@ -235,6 +239,42 @@ const systemSlice = createSlice({
      */
     clearError: (state) => {
       state.error = null
+    },
+
+    /**
+     * Toggle group visibility in GraphViewer
+     */
+    toggleGroupVisibility: (state, action) => {
+      const { groupName, visible } = action.payload
+      state.groupVisibility[groupName] = visible
+    },
+
+    /**
+     * Toggle system collapsed state in GraphViewer
+     */
+    toggleSystemCollapsed: (state, action) => {
+      const { systemName, collapsed } = action.payload
+      state.systemCollapsed[systemName] = collapsed
+    },
+
+    /**
+     * Set all groups visibility at once
+     */
+    setAllGroupsVisibility: (state, action) => {
+      const visible = action.payload
+      Object.keys(state.groupVisibility).forEach(groupName => {
+        state.groupVisibility[groupName] = visible
+      })
+    },
+
+    /**
+     * Set all systems collapsed state at once
+     */
+    setAllSystemsCollapsed: (state, action) => {
+      const collapsed = action.payload
+      Object.keys(state.systemCollapsed).forEach(systemName => {
+        state.systemCollapsed[systemName] = collapsed
+      })
     }
   }
 })
@@ -257,7 +297,11 @@ export const {
   setSystems,
   setLoading,
   setError,
-  clearError
+  clearError,
+  toggleGroupVisibility,
+  toggleSystemCollapsed,
+  setAllGroupsVisibility,
+  setAllSystemsCollapsed
 } = systemSlice.actions
 
 /**
@@ -280,5 +324,7 @@ export const selectVisibleSystems = (state) => {
 }
 export const selectIsLoading = (state) => state.system.isLoading
 export const selectError = (state) => state.system.error
+export const selectGroupVisibility = (state) => state.system.groupVisibility
+export const selectSystemCollapsed = (state) => state.system.systemCollapsed
 
 export default systemSlice.reducer

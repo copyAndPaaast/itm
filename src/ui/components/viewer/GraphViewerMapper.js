@@ -22,15 +22,17 @@ export class GraphViewerMapper {
   /**
    * Map business data to Cytoscape elements
    */
-  mapToElements(nodes, edges) {
+  mapToElements(nodes, edges, options = {}) {
+    const { groupVisibility = {}, systemCollapsed = {} } = options
+    
     // Reset mappings
     this.nodeMapping.clear()
     this.systemCompounds.clear()
 
     const elements = []
 
-    // Step 1: Create system compounds
-    this.createSystemCompounds(nodes, elements)
+    // Step 1: Create system compounds (with collapse state)
+    this.createSystemCompounds(nodes, elements, systemCollapsed)
 
     // Step 2: Create nodes  
     this.createNodes(nodes, elements)
@@ -38,14 +40,18 @@ export class GraphViewerMapper {
     // Step 3: Create edges
     this.createEdges(edges, elements)
 
+    // Step 4: Apply group visibility (create/hide hulls)
+    this.applyGroupVisibility(elements, groupVisibility)
+
     console.log(`Mapped ${nodes.length} nodes, ${edges.length} edges to ${elements.length} elements`)
+    console.log('Applied visibility states:', { groupVisibility, systemCollapsed })
     return elements
   }
 
   /**
    * Create system compound elements
    */
-  createSystemCompounds(nodes, elements) {
+  createSystemCompounds(nodes, elements, systemCollapsed = {}) {
     const systems = new Set()
     
     // Collect all system names
@@ -58,6 +64,7 @@ export class GraphViewerMapper {
     // Create compound for each system
     systems.forEach(systemName => {
       const compoundId = this.generateDisplayId('system')
+      const isCollapsed = systemCollapsed[systemName] === true
       
       elements.push({
         group: 'nodes',
@@ -66,9 +73,10 @@ export class GraphViewerMapper {
           label: `System: ${systemName}`,
           isCompound: true,
           compoundType: 'system',
-          systemName: systemName
+          systemName: systemName,
+          collapsed: isCollapsed
         },
-        classes: 'system-compound'
+        classes: `system-compound ${isCollapsed ? 'collapsed' : 'expanded'}`
       })
 
       this.systemCompounds.set(systemName, compoundId)
@@ -588,6 +596,120 @@ export class GraphViewerMapper {
     }
     
     return colors[Math.abs(hash) % colors.length]
+  }
+
+  /**
+   * Apply group visibility states during element creation
+   */
+  applyGroupVisibility(elements, groupVisibility = {}) {
+    // Create hulls for visible groups
+    const groups = new Map()
+    
+    // Collect all groups from elements
+    elements.forEach(element => {
+      if (element.group === 'nodes' && !element.data.isCompound && !element.data.isHull) {
+        const nodeGroups = element.data.groups || []
+        nodeGroups.forEach(groupName => {
+          if (!groups.has(groupName)) {
+            groups.set(groupName, [])
+          }
+          groups.get(groupName).push(element)
+        })
+      }
+    })
+    
+    console.log('Applying group visibility to', groups.size, 'groups:', Array.from(groups.keys()))
+    
+    // Create hull elements for visible groups
+    groups.forEach((groupElements, groupName) => {
+      const isVisible = groupVisibility[groupName] !== false // Default true
+      
+      if (isVisible && groupElements.length >= 1) {
+        console.log('Creating hull for visible group:', groupName)
+        this.createStaticHullElement(groupElements, groupName, elements)
+      } else {
+        console.log('Skipping hull for hidden group:', groupName)
+      }
+    })
+  }
+
+  /**
+   * Create a static hull element during mapping (not requiring live Cytoscape instance)
+   */
+  createStaticHullElement(groupElements, groupName, elements) {
+    // Calculate approximate bounding box from element positions
+    const padding = 60
+    const minHullSize = 120
+    
+    let minX = Infinity, maxX = -Infinity
+    let minY = Infinity, maxY = -Infinity
+    
+    // Use element positions (approximate since we don't have actual rendered sizes)
+    groupElements.forEach(element => {
+      if (element.position) {
+        const x = element.position.x
+        const y = element.position.y
+        const nodeSize = 40 // Approximate node size
+        
+        minX = Math.min(minX, x - nodeSize/2)
+        maxX = Math.max(maxX, x + nodeSize/2)
+        minY = Math.min(minY, y - nodeSize/2)
+        maxY = Math.max(maxY, y + nodeSize/2)
+      }
+    })
+    
+    // If no positions available, skip hull creation
+    if (minX === Infinity) {
+      console.log('No position data available for hull:', groupName)
+      return
+    }
+    
+    // Add padding and ensure minimum size
+    minX -= padding
+    maxX += padding
+    minY -= padding
+    maxY += padding
+    
+    const currentWidth = maxX - minX
+    const currentHeight = maxY - minY
+    
+    if (currentWidth < minHullSize) {
+      const expand = (minHullSize - currentWidth) / 2
+      minX -= expand
+      maxX += expand
+    }
+    
+    if (currentHeight < minHullSize) {
+      const expand = (minHullSize - currentHeight) / 2
+      minY -= expand
+      maxY += expand
+    }
+    
+    // Create hull element
+    const hullId = `hull_${groupName.replace(/\s+/g, '_')}`
+    const hullColor = this.getGroupColor(groupName)
+    
+    const hullElement = {
+      group: 'nodes',
+      data: {
+        id: hullId,
+        label: groupName,
+        isHull: true,
+        groupName: groupName,
+        memberCount: groupElements.length,
+        hullColor: hullColor,
+        width: maxX - minX,
+        height: maxY - minY
+      },
+      classes: 'group-hull',
+      position: {
+        x: (minX + maxX) / 2,
+        y: (minY + maxY) / 2
+      }
+    }
+    
+    elements.push(hullElement)
+    console.log(`Created static hull for group: ${groupName} with ${groupElements.length} members`)
   }
 
   /**

@@ -48,6 +48,7 @@ const GraphViewer = forwardRef(({
   systemCollapsed = {},
   onGroupToggle = () => {},
   onSystemToggle = () => {},
+  systemViewMode = 'single',
   
   ...props
 }, ref) => {
@@ -165,6 +166,32 @@ const GraphViewer = forwardRef(({
           link.download = 'graph.png'
           link.href = png64
           link.click()
+        }
+        break
+      case 'collapse':
+        // Handle expand/collapse operations
+        if (cyRef.current && cyRef.current._expandCollapseAPI) {
+          const api = cyRef.current._expandCollapseAPI
+          if (eventData.action === 'expandAll') {
+            console.log('🔄 Expanding all systems via toolbar')
+            api.expandAll()
+          } else if (eventData.action === 'collapseAll') {
+            console.log('🔄 Collapsing all systems via toolbar')
+            api.collapseAll()
+          } else if (eventData.action === 'toggleSystem' && eventData.systemName) {
+            // Handle individual system toggle
+            console.log('🔄 Toggling system:', eventData.systemName, 'collapsed:', eventData.collapsed)
+            const systemNodes = cyRef.current.nodes(`[systemName = "${eventData.systemName}"][compoundType = "system"]`)
+            systemNodes.forEach(node => {
+              if (eventData.collapsed) {
+                api.collapse(node)
+              } else {
+                api.expand(node)
+              }
+            })
+          }
+        } else {
+          console.warn('⚠️ Expand-collapse API not available')
         }
         break
       default:
@@ -781,6 +808,7 @@ const GraphViewer = forwardRef(({
         systemCollapsed={systemCollapsed}
         onGroupToggle={onGroupToggle}
         onSystemToggle={onSystemToggle}
+        systemViewMode={systemViewMode}
       />
 
       {/* Graph Container */}

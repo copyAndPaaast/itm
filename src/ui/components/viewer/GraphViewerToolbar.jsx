@@ -72,7 +72,10 @@ export const GraphViewerToolbar = ({
   groupVisibility = {},
   systemCollapsed = {},
   onGroupToggle = () => {},
-  onSystemToggle = () => {}
+  onSystemToggle = () => {},
+  
+  // System view mode (to conditionally show system controls)
+  systemViewMode = 'single'
 }) => {
   // Search state
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
@@ -149,7 +152,15 @@ export const GraphViewerToolbar = ({
   }
 
   const handleSystemToggle = (systemName, collapsed) => {
+    // Update Redux state
     onSystemToggle(systemName, collapsed)
+    
+    // Also trigger Cytoscape collapse/expand
+    onEvent('collapse', { 
+      action: 'toggleSystem', 
+      systemName, 
+      collapsed 
+    })
   }
 
   const handleExpandAll = () => {
@@ -415,7 +426,7 @@ export const GraphViewerToolbar = ({
           sx: { mt: 1 }
         }}
       >
-        <MenuItem onClick={() => handleLayoutChange('dagre')}>
+        <MenuItem key="layout-dagre" onClick={() => handleLayoutChange('dagre')}>
           <ListItemIcon>
             <AccountTree />
           </ListItemIcon>
@@ -424,7 +435,7 @@ export const GraphViewerToolbar = ({
             secondary="Top-down hierarchy"
           />
         </MenuItem>
-        <MenuItem onClick={() => handleLayoutChange('cola')}>
+        <MenuItem key="layout-cola" onClick={() => handleLayoutChange('cola')}>
           <ListItemIcon>
             <Hub />
           </ListItemIcon>
@@ -433,7 +444,7 @@ export const GraphViewerToolbar = ({
             secondary="Physics-based layout"
           />
         </MenuItem>
-        <MenuItem onClick={() => handleLayoutChange('cose-bilkent')}>
+        <MenuItem key="layout-cose-bilkent" onClick={() => handleLayoutChange('cose-bilkent')}>
           <ListItemIcon>
             <ScatterPlot />
           </ListItemIcon>
@@ -442,7 +453,7 @@ export const GraphViewerToolbar = ({
             secondary="Optimized positioning"
           />
         </MenuItem>
-        <MenuItem onClick={() => handleLayoutChange('circle')}>
+        <MenuItem key="layout-circle" onClick={() => handleLayoutChange('circle')}>
           <ListItemIcon>
             <RadioButtonUnchecked />
           </ListItemIcon>
@@ -464,7 +475,7 @@ export const GraphViewerToolbar = ({
         }}
       >
         {/* Quick Actions Header */}
-        <MenuItem disabled>
+        <MenuItem key="quick-actions-header" disabled>
           <ListItemText 
             primary="Quick Actions"
             secondary="Bulk operations for all elements"
@@ -472,7 +483,7 @@ export const GraphViewerToolbar = ({
         </MenuItem>
         
         {/* Quick Action Buttons */}
-        <MenuItem onClick={handleExpandAll}>
+        <MenuItem key="expand-all" onClick={handleExpandAll}>
           <ListItemIcon>
             <UnfoldMore color="success" />
           </ListItemIcon>
@@ -481,7 +492,7 @@ export const GraphViewerToolbar = ({
             secondary={`Show all ${availableSystems.length} systems & ${availableGroups.length} groups`}
           />
         </MenuItem>
-        <MenuItem onClick={handleCollapseAll}>
+        <MenuItem key="collapse-all" onClick={handleCollapseAll}>
           <ListItemIcon>
             <UnfoldLess color="warning" />
           </ListItemIcon>
@@ -492,12 +503,12 @@ export const GraphViewerToolbar = ({
         </MenuItem>
         
         {/* Divider */}
-        {(availableSystems.length > 0 || availableGroups.length > 0) && <Divider />}
+        {((systemViewMode !== 'single' && availableSystems.length > 0) || availableGroups.length > 0) && <Divider />}
         
         {/* Systems Section */}
         {availableSystems.length > 0 && (
           <>
-            <MenuItem disabled>
+            <MenuItem key="systems-header" disabled>
               <ListItemIcon>
                 <ViewComfy />
               </ListItemIcon>
@@ -540,7 +551,7 @@ export const GraphViewerToolbar = ({
         {availableGroups.length > 0 && (
           <>
             {availableSystems.length > 0 && <Divider />}
-            <MenuItem disabled>
+            <MenuItem key="groups-header" disabled>
               <ListItemIcon>
                 <ViewModule />
               </ListItemIcon>
@@ -581,7 +592,7 @@ export const GraphViewerToolbar = ({
         
         {/* Empty state */}
         {availableSystems.length === 0 && availableGroups.length === 0 && (
-          <MenuItem disabled>
+          <MenuItem key="empty-state" disabled>
             <ListItemText 
               primary="No collapse options"
               secondary="No systems or groups available"

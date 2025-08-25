@@ -31,6 +31,30 @@ NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 
+## 🚨 **CRITICAL: Interface Analysis First**
+**Before implementing ANY functionality, ALWAYS:**
+
+1. **Read Component Interfaces**: Check existing component props, methods, and data structures
+2. **Read Service/Class Methods**: Examine existing methods like `GraphViewerMapper.mapToElements()`
+3. **Check Method Signatures**: Look for optional parameters, return types, expected data formats
+4. **Identify Integration Points**: Find where Redux states should connect to existing functionality
+
+**Examples of Interface Analysis:**
+- `GraphViewerMapper.mapToElements(nodes, edges, options?)` - Check if it accepts visibility states
+- `GraphViewer.handleToolbarEvent(eventType, eventData)` - Check if it handles 'collapse' events
+- Component prop requirements: `groupVisibility={}`, `onSystemToggle=()=>{}`
+
+**Why This Matters:**
+- Prevents spending hours debugging missing integrations
+- Avoids duplicate/incompatible implementations
+- Ensures proper data flow through existing architecture
+- Maintains consistency with established patterns
+
+**Process:**
+1. **Before coding**: Read files, examine interfaces, understand data flow
+2. **Then code**: Implement using existing patterns and integration points
+3. **Result**: Faster development, fewer bugs, cleaner architecture
+
 ---
 
 ## 🎯 **NEW: Collapsible System Compounds** - *August 22, 2025*
